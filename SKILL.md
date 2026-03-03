@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.2.7
+version: 3.2.8
 metadata:
   openclaw:
     requires:
@@ -71,6 +71,7 @@ metadata:
 curl -s "https://api.ctmon.xyz/api/brief/generate?hours=24" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.report'
 ```
+> ⚠️ Response structure: `{"report": "...", "hours": N, "tweet_count": N, "generated_at": "..."}` — always extract `.report` (the Markdown string). If you receive the full JSON object instead of a string, the data is intact; re-extract with `| jq '.report'`.
 
 **Step 2: Trending tokens + KOL mention analysis**
 ```bash
@@ -86,7 +87,7 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
 
 **Synthesis prompt**:
 > You have received three data sources:
-> - Source A: `.report` — AI-generated briefing with sections: Market Overview (prices), Key News, Sector Highlights, Notable Alpha
+> - Source A: `.report` — AI-generated briefing (Markdown string) with sections: Market Overview (prices), Key News, Sector Highlights, Notable Alpha. **If you received the full JSON object `{"report": "...", ...}` instead of a string, extract `.report` before proceeding. Never treat an empty `.report` as a reason to fabricate — if the field is genuinely empty, skip that section and note "briefing unavailable".**
 > - Source B: trending token list — each item: `symbol`, `cg_rank` (CoinGecko trending rank, 1=hottest), `mention_count` (distinct KOLs mentioning it), `price_change` (24h % from CoinGecko, accurate per-token), `top_kols`, `sample_tweets`
 > - Source C: alpha signals — each item: `keyword` (token), `kol_count`, `kols`, `sample_tweets`
 >
@@ -589,7 +590,7 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=50" \
 | Trending tokens | `GET /price/trending?hours=6` |
 | Market overview | `GET /price/summary` |
 | Alpha signals | `GET /signals/recent?hours=6&min_score=60` |
-| AI briefing | `GET /brief/generate?hours=24` |
+| AI briefing | `GET /brief/generate?hours=24` — returns `{"report": "...", "hours": N, ...}`; use `.report` field |
 | KOL ranking | `GET /users/top?limit=10` |
 | Add to watchlist | `POST /subscriptions/?username=pump_fun` |
 | Remove from watchlist | `DELETE /subscriptions/pump_fun` |
