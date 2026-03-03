@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.2.0
+version: 3.2.2
 metadata:
   openclaw:
     requires:
@@ -64,7 +64,7 @@ metadata:
 
 ### Combo 1: Morning Intelligence Brief (Daily)
 
-> 5 minutes every morning to understand the past 24 hours of crypto markets. Total cost ~4¢.
+> Daily morning briefing covering the past 24 hours of crypto markets. Total cost ~4¢.
 
 **Step 1: Get AI comprehensive briefing**
 ```bash
@@ -85,7 +85,21 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
 ```
 
 **Synthesis prompt**:
-> Above is 24h market data (AI briefing + trending tokens + signals). Generate a structured morning report including: ① Overall market sentiment (Bullish/Bearish/Neutral) ② Top 3 narratives today ③ Tokens to watch (with reasons) ④ Risk alerts for today
+> You have received three data sources: (1) `.report` — AI-generated 24h market briefing based on 2000+ KOL tweets + news + price data; (2) trending token list with `mention_count` (number of distinct KOLs mentioning each token) and `price_change`; (3) alpha signals where multiple KOLs mentioned the same token within 6h.
+>
+> Generate a **Markdown-formatted** morning intelligence report with this exact structure:
+>
+> **Layer 1 — One-Line Summary** (1 sentence: overall market direction + single most important event)
+>
+> **Layer 2 — Key News** (top 3 most impactful events from the briefing, each with a one-line impact assessment)
+>
+> **Layer 3 — Sector Pulse** (which sectors are heating up 🔥 / cooling down ❄️ / stable ➡️, based on KOL tweet patterns)
+>
+> **Layer 4 — Alpha Watchlist** (tokens worth watching: combine trending `mention_count` + `price_change` + signal `kol_count`; for each token show: symbol, why it's notable, risk level)
+>
+> **Layer 5 — Data Snapshot** (one line each: market sentiment Bullish/Bearish/Neutral, top mentioned token, signal count, data freshness)
+>
+> **Rules**: If signals data is empty `[]`, write "No multi-KOL signals in the last 6h" in Layer 4 and rely on trending data only. If a token appears in both trending AND signals, mark it ⚡ (double confirmation). Never fabricate data not present in the API response.
 
 > 🤖 **Automate this combo** — run every morning at 8am and deliver to Telegram:
 > ```bash
@@ -94,7 +108,7 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
 >   --cron "0 8 * * *" \
 >   --tz "Asia/Shanghai" \
 >   --session isolated \
->   --message "Run CT Monitor Combo 1: call /brief/generate?hours=24, /price/trending?hours=24, /signals/recent?hours=6. Synthesize into a structured morning report: market sentiment, top 3 narratives, tokens to watch, risk alerts." \
+>   --message "Run CT Monitor Combo 1: call /brief/generate?hours=24 (use .report field), /price/trending?hours=24, /signals/recent?hours=6&min_score=60. Synthesize into a Markdown morning report with 5 layers: one-line summary, key news (top 3), sector pulse (heating/cooling/stable), alpha watchlist (tokens in both trending+signals marked ⚡), data snapshot. If signals is empty [], note it and rely on trending only." \
 >   --announce \
 >   --channel telegram
 > ```
@@ -504,7 +518,7 @@ openclaw cron add \
   --cron "0 8 * * *" \
   --tz "Asia/Shanghai" \
   --session isolated \
-  --message "Run CT Monitor Combo 1: call /brief/generate?hours=24, /price/trending?hours=24, /signals/recent?hours=6. Synthesize into a structured morning report: market sentiment, top 3 narratives, tokens to watch, risk alerts." \
+  --message "Run CT Monitor Combo 1: call /brief/generate?hours=24 (use .report field), /price/trending?hours=24, /signals/recent?hours=6&min_score=60. Synthesize into a Markdown morning report with 5 layers: one-line summary, key news (top 3), sector pulse (heating/cooling/stable), alpha watchlist (tokens in both trending+signals marked ⚡), data snapshot. If signals is empty [], note it and rely on trending only." \
   --announce \
   --channel telegram
 ```
