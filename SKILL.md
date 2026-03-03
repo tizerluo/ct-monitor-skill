@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.2.5
+version: 3.2.6
 metadata:
   openclaw:
     requires:
@@ -181,21 +181,25 @@ curl -s "https://api.ctmon.xyz/api/price/summary" \
 > | — | $RIVER | 4 | KOL1, KOL2 | +21.12% | #7 | ❌ | 跨链稳定币叙事 + 官方补偿方案 |
 >
 > Rules for the table:
-> - Only include tokens where `mention_count >= 2`, sorted by `mention_count` desc; ties broken by `abs(price_change)` desc
+> - Only include tokens where `mention_count >= 2`, sorted by `mention_count` desc; ties broken by `abs(price_change)` desc — do NOT output this sorting logic as text in the report
 > - Signal column: `⚡` if token appears in Source B (signals), otherwise `—`
 > - Top KOLs: list up to 3 names from `top_kols` field
 > - 24h Change: use `price_change` field (not `price_change_24h`); format as `+X.XX%` or `-X.XX%`
 > - News column: `✅` if Source C contains any article mentioning this token, otherwise `❌`
-> - Heat Reason ("热度原因"): synthesize from `sample_tweets` + news coverage + price behavior — **never fabricate**; if no clear reason found, write "KOL 提及，原因不明"
+> - Heat Reason ("热度原因"): synthesize from `sample_tweets` + news coverage + price behavior into **≤20 Chinese characters** — **never fabricate**; if no clear reason found, write "KOL 提及，原因不明"
 > - Price direction label: compare token's `price_change` against BTC baseline from Source D — if token is up while BTC is down, label as "强势（逆势上涨）"; if token is down more than BTC, label as "弱势"; do NOT use fixed thresholds like ">+20%"
 >
-> **⚠️ 风险警告** (after the table):
+> **⚡ 场外信号** (after the table, only if applicable):
+> - If Source B contains any token NOT in Source A (i.e. not in trending list) AND `kol_count >= 2`, list them as: `⚡ $SYMBOL — N 位 KOL 同时提及（[KOL names]）：[one-line summary from sample_tweets, ≤20 chars]`
+> - If no such tokens exist, omit this section entirely
+>
+> **⚠️ 风险警告** (after 场外信号 section):
 > - For any token with `price_change < -50%`: `⚠️ $SYMBOL 异常暴跌 (X%)，需调查原因 — 可能是操盘/利空/流动性危机`
 > - For any token with `cg_rank ≤ 5` AND `mention_count = 0`: `⚠️ CoinGecko 热榜但零 KOL 覆盖：$SYMBOL (X%) — 无 KOL 背书，谨慎追高`
 >
 > **Language rule**: Detect the user's language and write the ENTIRE report in that language. Never mix languages. Proper nouns (DeFi, RWA, $BTC, KOL names) stay in original form.
 >
-> **Hard rules**: Never fabricate. Use `price_change` field (not `price_change_24h`). Tokens with `mention_count < 2` are silently omitted from main table but may appear in warnings.
+> **Hard rules**: Never fabricate. Use `price_change` field (not `price_change_24h`). Tokens with `mention_count < 2` are silently omitted from main table but may appear in warnings or 场外信号.
 
 ---
 
