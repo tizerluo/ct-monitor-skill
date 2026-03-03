@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.2.2
+version: 3.2.3
 metadata:
   openclaw:
     requires:
@@ -85,21 +85,33 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
 ```
 
 **Synthesis prompt**:
-> You have received three data sources: (1) `.report` — AI-generated 24h market briefing based on 2000+ KOL tweets + news + price data; (2) trending token list with `mention_count` (number of distinct KOLs mentioning each token) and `price_change`; (3) alpha signals where multiple KOLs mentioned the same token within 6h.
+> You have received three data sources:
+> - Source A: `.report` — AI-generated briefing with sections: Market Overview (prices), Key News, Sector Highlights, Notable Alpha
+> - Source B: trending token list — each item: `symbol`, `cg_rank` (CoinGecko trending rank, 1=hottest), `mention_count` (distinct KOLs mentioning it), `price_change` (24h % from CoinGecko, accurate per-token), `top_kols`, `sample_tweets`
+> - Source C: alpha signals — each item: `keyword` (token), `kol_count`, `kols`, `sample_tweets`
 >
 > Generate a **Markdown-formatted** morning intelligence report with this exact structure:
 >
-> **Layer 1 — One-Line Summary** (1 sentence: overall market direction + single most important event)
+> **Header**: Use the exact date/time from `.report` (e.g. "October 26, 2024 20:30 PST")
 >
-> **Layer 2 — Key News** (top 3 most impactful events from the briefing, each with a one-line impact assessment)
+> **📊 Market Overview**: Copy the Market Overview section from `.report` verbatim. Then append: `> 💡 KOL Signal: [what signals data shows, e.g. "$BTC confirmed by 9 KOLs in last 6h — bullish consensus"]`. Skip this line if signals is `[]`.
 >
-> **Layer 3 — Sector Pulse** (which sectors are heating up 🔥 / cooling down ❄️ / stable ➡️, based on KOL tweet patterns)
+> **📰 Key News**: Copy ALL Key News items from `.report` verbatim — do NOT reduce the count. After each item add: `→ Impact: [one-line assessment]`
 >
-> **Layer 4 — Alpha Watchlist** (tokens worth watching: combine trending `mention_count` + `price_change` + signal `kol_count`; for each token show: symbol, why it's notable, risk level)
+> **🔥 Sector Pulse**: Based on `.report`'s Sector Highlights + KOL tweet patterns, rate each sector 🔥 heating / ❄️ cooling / ➡️ stable. Format as a table.
 >
-> **Layer 5 — Data Snapshot** (one line each: market sentiment Bullish/Bearish/Neutral, top mentioned token, signal count, data freshness)
+> **💡 Notable Alpha**: Copy ALL Notable Alpha items from `.report` verbatim — do NOT reduce the count.
 >
-> **Rules**: If signals data is empty `[]`, write "No multi-KOL signals in the last 6h" in Layer 4 and rely on trending data only. If a token appears in both trending AND signals, mark it ⚡ (double confirmation). Never fabricate data not present in the API response.
+> **📈 Trending Tokens (CoinGecko × KOL Cross-Analysis)**:
+> This section shows the intersection of CoinGecko trending (market money moving) and KOL mentions (opinion moving).
+> - List ONLY tokens where `mention_count >= 2`, sorted by mention_count descending
+> - Format: `[⚡ if also in signals]$SYMBOL — KOL: {mention_count} mentions | 24h: {+/-X.XX% or N/A} | CG Rank: #{cg_rank}`
+> - If token is in signals: append `| Signal: {kol_count} KOLs confirmed`
+> - If `price_change` > +20% with `mention_count` >= 2: add `← price surge + KOL attention`
+> - If `price_change` < -50% with high `cg_rank` (≤3): add `⚠️ CG hot but crashing`
+> - After the main list, add one line for any token with `cg_rank` ≤ 5 AND `mention_count` = 0: `⚠️ CoinGecko hot but zero KOL coverage: $SYMBOL ({price_change}%) — no KOL backing, caution`
+>
+> **Rules**: Never add metadata sections. Never fabricate. Use `price_change` field (not `price_change_24h`). Tokens with mention_count < 2 are silently omitted from main list.
 
 > 🤖 **Automate this combo** — run every morning at 8am and deliver to Telegram:
 > ```bash
@@ -108,7 +120,7 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
 >   --cron "0 8 * * *" \
 >   --tz "Asia/Shanghai" \
 >   --session isolated \
->   --message "Run CT Monitor Combo 1: call /brief/generate?hours=24 (use .report field), /price/trending?hours=24, /signals/recent?hours=6&min_score=60. Synthesize into a Markdown morning report with 5 layers: one-line summary, key news (top 3), sector pulse (heating/cooling/stable), alpha watchlist (tokens in both trending+signals marked ⚡), data snapshot. If signals is empty [], note it and rely on trending only." \
+>   --message "Run CT Monitor Combo 1: call /brief/generate?hours=24 (use .report field), /price/trending?hours=24, /signals/recent?hours=6&min_score=60. Synthesize into a Markdown morning report with 5 sections: (1) 📊 Market Overview — copy .report verbatim + append KOL Signal line from signals data; (2) 📰 Key News — copy ALL items from .report verbatim, add Impact assessment per item; (3) 🔥 Sector Pulse — table with heating/cooling/stable ratings; (4) 💡 Notable Alpha — copy ALL items from .report verbatim; (5) 📈 Trending Tokens — list only mention_count>=2 sorted by mention_count desc, format: [⚡]$SYMBOL — KOL: N mentions | 24h: X% | CG Rank: #N, mark ⚡ if also in signals, add warning line for cg_rank<=5 AND mention_count=0 tokens. Use price_change field (not price_change_24h). Never fabricate." \
 >   --announce \
 >   --channel telegram
 > ```
@@ -518,7 +530,7 @@ openclaw cron add \
   --cron "0 8 * * *" \
   --tz "Asia/Shanghai" \
   --session isolated \
-  --message "Run CT Monitor Combo 1: call /brief/generate?hours=24 (use .report field), /price/trending?hours=24, /signals/recent?hours=6&min_score=60. Synthesize into a Markdown morning report with 5 layers: one-line summary, key news (top 3), sector pulse (heating/cooling/stable), alpha watchlist (tokens in both trending+signals marked ⚡), data snapshot. If signals is empty [], note it and rely on trending only." \
+  --message "Run CT Monitor Combo 1: call /brief/generate?hours=24 (use .report field), /price/trending?hours=24, /signals/recent?hours=6&min_score=60. Synthesize into a Markdown morning report with 5 sections: (1) 📊 Market Overview — copy .report verbatim + append KOL Signal line from signals data; (2) 📰 Key News — copy ALL items from .report verbatim, add Impact assessment per item; (3) 🔥 Sector Pulse — table with heating/cooling/stable ratings; (4) 💡 Notable Alpha — copy ALL items from .report verbatim; (5) 📈 Trending Tokens — list only mention_count>=2 sorted by mention_count desc, format: [⚡]$SYMBOL — KOL: N mentions | 24h: X% | CG Rank: #N, mark ⚡ if also in signals, add warning line for cg_rank<=5 AND mention_count=0 tokens. Use price_change field (not price_change_24h). Never fabricate." \
   --announce \
   --channel telegram
 ```
