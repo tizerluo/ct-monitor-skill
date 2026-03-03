@@ -1,7 +1,6 @@
 ---
 name: ct-monitor
-description: CT Monitor — 加密市场全栈情报分析师。整合 5000+ KOL 推文、实时新闻、RSS、价格数据，提取 Alpha 信号、识别叙事、生成 AI 简报。
-author: Trae-Team
+description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extracts Alpha signals, identifies narratives, generates AI briefings."
 version: 3.0.0
 metadata:
   openclaw:
@@ -13,7 +12,7 @@ metadata:
         - CT_MONITOR_API_KEY
     primaryEnv: CT_MONITOR_API_KEY
     emoji: "📡"
-    homepage: https://ctmon.xyz
+    homepage: https://github.com/tizerluo/ct-monitor-skill
 ---
 
 # CT Monitor — 加密市场全栈情报分析师

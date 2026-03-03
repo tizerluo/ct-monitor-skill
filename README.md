@@ -1,238 +1,266 @@
-# 📡 CT Monitor — 加密市场全栈情报分析师
+# 📡 CT Monitor — Crypto Intelligence Analyst
 
-> 整合 5000+ KOL 推文、实时新闻、RSS、CoinGecko 价格数据，提取 Alpha 信号、识别新兴叙事、生成 AI 简报。
+> Monitor 5000+ crypto KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extract Alpha signals, identify narratives, generate AI briefings.
 
----
-
-## 这是什么？
-
-CT Monitor 是一个专为加密市场设计的 OpenClaw Skill。它连接到一个持续运行的后端服务，该服务：
-
-- **实时监控** 5000+ 加密 KOL 的推文（每 30 分钟 ~ 24 小时同步一次，按影响力分级）
-- **聚合多源资讯**：AI 评分新闻 + 精选 RSS 订阅，自动去重
-- **追踪价格数据**：CoinGecko 实时价格 + 趋势币分析 + KOL 提及关联
-- **提取 Alpha 信号**：基于 KOL 影响力加权，识别高频提及的代币和叙事
-- **生成 AI 简报**：由 Grok 4.1 Fast 整合多源数据，生成可操作的市场分析
-
-安装后，你可以直接用自然语言向 OpenClaw 提问，它会自动调用相应的 API 并整合分析结果。
+[中文文档 ↓](#中文说明)
 
 ---
 
-## 能做什么？
+## What is this?
 
-| 场景 | 示例问题 |
+CT Monitor is an OpenClaw Skill that connects to a continuously running backend service which:
+
+- **Monitors** 5000+ crypto KOL tweets (synced every 30 min ~ 24h, tiered by influence)
+- **Aggregates** AI-scored news + curated RSS feeds with automatic deduplication
+- **Tracks** CoinGecko real-time prices + trending token analysis + KOL mention correlation
+- **Extracts** Alpha signals weighted by KOL influence, identifying high-frequency token mentions
+- **Generates** AI briefings powered by Grok 4.1 Fast, integrating multi-source data
+
+Once installed, ask OpenClaw in natural language — it automatically calls the right APIs and synthesizes the results.
+
+---
+
+## What can it do?
+
+| Scenario | Example prompt |
 | :--- | :--- |
-| 📰 **早间情报** | "给我一份今天的加密市场早报" |
-| 🔍 **Alpha 信号** | "最近 1 小时有什么值得关注的信号？" |
-| 👤 **KOL 调查** | "Vitalik 最近在关注什么？" |
-| 🏗️ **项目尽调** | "帮我快速调查一下 Hyperliquid" |
-| 🚨 **安全预警** | "有没有最新的 Hack 或 Rug 消息？" |
-| 💰 **价格查询** | "BTC 现在多少钱？过去 24 小时涨了多少？" |
-| 📈 **趋势分析** | "现在什么币最热？KOL 们在讨论什么？" |
-| 📅 **定投辅助** | "帮我分析一下本周市场，给出定投建议" |
+| 📰 **Morning Brief** | "Give me today's crypto market briefing" |
+| 🔍 **Alpha Signals** | "Any notable signals in the last hour?" |
+| 👤 **KOL Research** | "What has Vitalik been focused on lately?" |
+| 🏗️ **Project Due Diligence** | "Quick research on Hyperliquid" |
+| 🚨 **Security Alert** | "Any recent hack or rug news?" |
+| 💰 **Price Query** | "What's BTC price? How much did it move in 24h?" |
+| 📈 **Trend Analysis** | "What tokens are trending? What are KOLs discussing?" |
+| 📅 **DCA Decision** | "Analyze this week's market, give me DCA suggestions" |
 
 ---
 
-## 快速开始
+## Quick Start
 
-### Step 1：获取 API Key
+### Step 1: Get an API Key
 
-访问 [ctmon.xyz](https://ctmon.xyz) 注册账号并获取 API Key。
+Visit [api.ctmon.xyz/docs](https://api.ctmon.xyz/docs) to register and get your API Key.
 
-### Step 2：在 OpenClaw 中安装 Skill
+### Step 2: Install the Skill in OpenClaw
 
 ```
 /skill install ct-monitor
 ```
 
-或者通过 ClawHub 搜索 "CT Monitor" 安装。
+Or search "CT Monitor" on [ClawHub](https://clawhub.ai/skills/ct-monitor).
 
-### Step 3：配置 API Key
+### Step 3: Configure API Key
 
-安装后，OpenClaw 会提示你输入 `CT_MONITOR_API_KEY`，填入你在 Step 1 获取的 API Key 即可。
+OpenClaw will prompt you to enter `CT_MONITOR_API_KEY`. Paste the key from Step 1.
 
-**验证安装**：
+**Verify installation:**
 ```
-检查一下 CT Monitor 的系统状态
+Check CT Monitor system status
 ```
 
-OpenClaw 应该返回同步状态和最后更新时间。
+OpenClaw should return sync status and last update time.
 
 ---
 
-## 使用场景与组合拳
+## Power Combos
 
-CT Monitor 的真正价值在于**多源数据组合**。以下是 6 个最常用的场景，每个场景都展示了如何将多个 API 组合使用，产出远超单一查询的洞察。
+CT Monitor's real value is in **combining multiple data sources**. Here are 6 scenarios that show how chaining APIs produces insights far beyond single queries.
 
-### 🌅 场景一：早间情报简报（每日必做）
+### 🌅 Combo 1: Morning Intelligence Brief (Daily)
 
-**你说**：
-> 给我一份今天的加密市场早报，包括市场情绪、热门叙事和值得关注的代币
+**You say:**
+> Give me today's crypto market briefing — market sentiment, hot narratives, and tokens to watch
 
-**OpenClaw 会做**：
-1. 调用 `/brief/generate?hours=24` 获取 AI 综合简报
-2. 调用 `/price/trending?hours=24` 获取趋势币 + KOL 提及分析
-3. 调用 `/signals/recent?hours=6` 获取最近 6 小时高频信号
-4. 整合三份数据，生成结构化早报
+**OpenClaw will:**
+1. Call `/brief/generate?hours=24` → AI comprehensive briefing
+2. Call `/price/trending?hours=24` → trending tokens + KOL mention analysis
+3. Call `/signals/recent?hours=6` → last 6h high-frequency signals
+4. Synthesize all three into a structured morning report
 
-**你会得到**：市场整体情绪 + 今日最热叙事 Top 3 + 值得关注的代币（附理由）+ 今日风险提示
+**You get:** Overall market sentiment + Top 3 narratives today + Tokens to watch (with reasons) + Risk alerts
 
-💡 **设置定时推送**：让 OpenClaw 每天早上 8 点自动发送到 Telegram
-
----
-
-### 🎯 场景二：Alpha 信号深挖（发现机会时）
-
-**你说**：
-> 最近 1 小时有什么 Alpha 信号？帮我深挖一下最强的那个
-
-**OpenClaw 会做**：
-1. 调用 `/signals/recent?hours=1` 发现高频提及代币（如 $PENGU）
-2. 调用 `/price/token?symbol=PENGU` 查当前价格和涨跌幅
-3. 调用 `/tweets/feed` 过滤出所有提及 $PENGU 的 KOL 推文
-4. 调用 `/info/feed?coin=PENGU` 查相关新闻和 RSS
-5. 调用 `/users/top` 评估提及 KOL 的影响力权重
-6. 综合分析，给出信号强度评级和操作建议
-
-**你会得到**：信号强度评级（强/中/弱）+ KOL 质量评估 + 价格背景 + 新闻佐证 + 操作建议（附风险提示）
+💡 **Set up auto-delivery:** Schedule OpenClaw to send this to Telegram every morning at 8am
 
 ---
 
-### 👤 场景三：KOL 深度画像（研究某个 KOL）
+### 🎯 Combo 2: Alpha Signal Deep Dive (When opportunity appears)
 
-**你说**：
-> 帮我深度分析一下 @cobie，他最近在关注什么，投资逻辑是什么？
+**You say:**
+> Any Alpha signals in the last hour? Deep dive the strongest one
 
-**OpenClaw 会做**：
-1. 调用 `/twitter/realtime?username=cobie` 获取最新实时推文
-2. 调用 `/tweets/recent?username=cobie` 获取历史推文（更长时间跨度）
-3. 调用 `/tweets/search?keyword=cobie` 搜索其他 KOL 对他的引用和评论
-4. 综合三个维度，生成 KOL 画像
+**OpenClaw will:**
+1. Call `/signals/recent?hours=1` → discover high-frequency token (e.g. $PENGU)
+2. Call `/price/token?symbol=PENGU` → current price and % change
+3. Call `/tweets/feed` filtered for $PENGU → what KOLs are actually saying
+4. Call `/info/feed?coin=PENGU` → related news and RSS
+5. Call `/users/top` → assess influence weight of mentioning KOLs
+6. Synthesize → signal strength rating + actionable recommendation
 
-**你会得到**：近期关注赛道/项目 + 核心观点提炼（Bullish/Bearish 立场）+ 投资逻辑分析 + 影响力评估 + 值得关注的观点
-
----
-
-### 🏗️ 场景四：项目尽调（快速全面调查）
-
-**你说**：
-> 帮我快速调查一下 Hyperliquid，我想了解社区热度、KOL 态度和价格表现
-
-**OpenClaw 会做**：
-1. 调用 `/tweets/feed` 过滤出所有提及 Hyperliquid/HYPE 的 KOL 推文
-2. 调用 `/info/feed?coin=HYPE` 查相关新闻和 RSS
-3. 调用 `/price/token?symbol=HYPE` 查价格数据
-4. 调用 `/signals/recent?hours=24` 查过去 24H 信号
-5. 综合生成尽调报告
-
-**你会得到**：社区热度评估 + KOL 情绪分布（Bullish/Bearish 比例）+ 价格表现分析 + 近期催化剂 + 主要风险点
+**You get:** Signal strength (Strong/Medium/Weak) + KOL quality assessment + Price context + News corroboration + Trade suggestion (with risk warning)
 
 ---
 
-### 🚨 场景五：安全预警响应（发现风险时）
+### 👤 Combo 3: KOL Deep Profile (Research a specific KOL)
 
-**你说**：
-> 我看到有人说某个协议被黑了，帮我快速确认一下，评估影响
+**You say:**
+> Deep dive @cobie — what's he focused on lately, what's his investment thesis?
 
-**OpenClaw 会做**：
-1. 调用 `/tweets/feed` 过滤 hack/exploit/rug 相关推文，确认事件
-2. 调用 `/info/feed` 查看新闻报道
-3. 调用 `/price/token` 查看受影响代币价格
-4. 调用 `/signals/recent?hours=0.25` 查看最近 15 分钟恐慌信号
-5. 综合评估，给出紧急程度评级
+**OpenClaw will:**
+1. Call `/twitter/realtime?username=cobie` → latest real-time tweets
+2. Call `/tweets/recent?username=cobie` → historical tweets (longer timespan)
+3. Call `/tweets/search?keyword=cobie` → how other KOLs reference and quote him
+4. Synthesize three dimensions into a KOL profile
 
-**你会得到**：事件确认（是否属实）+ 影响范围评估 + 受影响资产分析 + 紧急程度评级（高/中/低）+ 建议操作
-
-💡 **设置实时监控**：让 OpenClaw 每 15 分钟检查一次，发现安全事件立即推送
+**You get:** Recent sector/project focus + Core views (Bullish/Bearish stance) + Investment logic analysis + Influence assessment + Key insights worth noting
 
 ---
 
-### 📅 场景六：定投决策辅助（每周复盘）
+### 🏗️ Combo 4: Project Due Diligence (Quick comprehensive research)
 
-**你说**：
-> 帮我做一个本周的市场复盘，给出下周的定投建议
+**You say:**
+> Quick research on Hyperliquid — community heat, KOL sentiment, price performance
 
-**OpenClaw 会做**：
-1. 调用 `/brief/generate?hours=24` 获取最新市场简报
-2. 调用 `/price/trending?hours=24` 查过去 24H 趋势币
-3. 调用 `/price/summary` 查主流币价格总览
-4. 调用 `/signals/recent?hours=6` 查近期信号汇总
-5. 综合分析，生成投资决策报告
+**OpenClaw will:**
+1. Call `/tweets/feed` filtered for Hyperliquid/HYPE → KOL opinion panorama
+2. Call `/info/feed?coin=HYPE` → related news and RSS
+3. Call `/price/token?symbol=HYPE` → price data
+4. Call `/signals/recent?hours=24` → last 24h signals
+5. Synthesize into a due diligence report
 
-**你会得到**：市场趋势判断（牛/熊/震荡）+ 值得关注的赛道 + 主流币配置建议 + 风险提示 + 定投策略建议
+**You get:** Community heat assessment + KOL sentiment distribution (Bullish/Bearish ratio) + Price performance analysis + Recent catalysts + Key risk factors
 
 ---
 
-## 定时推送示例
+### 🚨 Combo 5: Security Alert Response (When risk appears)
 
-在 OpenClaw 中设置 Cron 任务，让 CT Monitor 自动工作：
+**You say:**
+> I heard a protocol got hacked — confirm it and assess the impact
 
-**每日早报（每天 8:00）**：
+**OpenClaw will:**
+1. Call `/tweets/feed` filtered for hack/exploit/rug → confirm the event
+2. Call `/info/feed` → check news coverage
+3. Call `/price/token` → check affected token price
+4. Call `/signals/recent?hours=0.25` → last 15min panic signals
+5. Synthesize → urgency rating + recommended actions
+
+**You get:** Event confirmation (real or FUD) + Impact scope assessment + Affected assets analysis + Urgency rating (High/Medium/Low) + Recommended actions
+
+💡 **Set up real-time monitoring:** Schedule OpenClaw to check every 15 minutes and push alerts immediately
+
+---
+
+### 📅 Combo 6: DCA Decision Support (Weekly review)
+
+**You say:**
+> Weekly market review — give me DCA strategy for next week
+
+**OpenClaw will:**
+1. Call `/brief/generate?hours=24` → latest market briefing
+2. Call `/price/trending?hours=24` → last 24h trending tokens
+3. Call `/price/summary` → major coin price overview
+4. Call `/signals/recent?hours=6` → recent signal summary
+5. Synthesize into an investment decision report
+
+**You get:** Market trend judgment (Bull/Bear/Sideways) + Sectors to watch + Major coin allocation suggestions + Risk warnings + DCA strategy recommendations
+
+---
+
+## Scheduled Automation Examples
+
+Set up Cron tasks in OpenClaw to let CT Monitor work automatically:
+
+**Daily briefing (8:00 AM):**
 ```
-每天早上 8 点，调用 CT Monitor 生成过去 24 小时的市场简报（包含 AI 简报 + 趋势币 + 信号），
-整理成中文要点，通过 Telegram 发送给我。
-```
-
-**实时信号预警（每 15 分钟）**：
-```
-每 15 分钟检查一次 CT Monitor 的最新信号，
-若有 kol_count >= 3 的信号，立即发送 Telegram 预警，包含代币名称、信号强度和相关 KOL。
+Every morning at 8am, use CT Monitor to generate a 24-hour market briefing
+(including AI brief + trending tokens + signals), summarize into 5 key points
+in English, and send to Telegram.
 ```
 
-**每周复盘（每周日 20:00）**：
+**Real-time signal alerts (every 15 min):**
 ```
-每周日晚上 8 点，调用 CT Monitor 生成本周市场复盘报告，
-包含市场趋势、热门赛道、值得关注的代币，通过 Telegram 发送给我。
+Every 15 minutes, check CT Monitor for latest signals.
+If any signal has kol_count >= 3, immediately send a Telegram alert
+with token name, signal strength, and relevant KOLs.
+```
+
+**Weekly review (Sunday 8:00 PM):**
+```
+Every Sunday at 8pm, use CT Monitor to generate a weekly market review
+including market trends, hot sectors, and tokens to watch, send to Telegram.
 ```
 
 ---
 
-## 定价说明
+## Pricing
 
-CT Monitor 按调用次数计费，费用从你的账户余额中扣除：
+CT Monitor charges per API call, deducted from your account balance:
 
-| 端点 | 费用 | 说明 |
+| Endpoint | Cost | Notes |
 | :--- | :--- | :--- |
-| `/brief/generate` hours=1 | 6¢ | 1H 快讯（Grok 4.1 Fast） |
-| `/brief/generate` hours=8 | 4¢ | 8H 简报 |
-| `/brief/generate` hours=12/24 | 2¢ | 12/24H 简报 |
-| `/signals/recent` hours<2 | 3¢ | 实时数据（6551 源） |
-| `/signals/recent` hours≥2 | 1¢ | 历史数据库 |
-| `/twitter/realtime` | 2¢ | 实时推文（6551 源） |
-| `/price/token` | 1¢ | 代币价格查询 |
-| `/price/trending` | 1¢ | 趋势币分析 |
-| `/price/summary` | 1¢ | 市场总览 |
-| `/info/feed` | 1¢ | 统一资讯流 |
-| `/tweets/feed` `/tweets/recent` `/tweets/search` | 免费 | 历史数据库查询 |
+| `/brief/generate` hours=1 | 6¢ | 1H flash briefing (Grok 4.1 Fast) |
+| `/brief/generate` hours=8 | 4¢ | 8H briefing |
+| `/brief/generate` hours=12/24 | 2¢ | 12/24H briefing |
+| `/signals/recent` hours<2 | 3¢ | Real-time data (6551 source) |
+| `/signals/recent` hours≥2 | 1¢ | Historical database |
+| `/twitter/realtime` | 2¢ | Real-time tweets (6551 source) |
+| `/price/token` | 1¢ | Token price query |
+| `/price/trending` | 1¢ | Trending token analysis |
+| `/price/summary` | 1¢ | Market overview |
+| `/info/feed` | 1¢ | Unified news + RSS feed |
+| `/tweets/feed` `/tweets/recent` `/tweets/search` | Free | Historical database queries |
 
-**典型场景费用**：
-- 早间情报简报：约 4¢/次
-- Alpha 信号深挖：约 6¢/次
-- 每日定时推送：约 $1.2/月
-
----
-
-## 常见问题
-
-**Q：数据有多新鲜？**
-A：KOL 推文按影响力分级同步：Ultra High（53人）每 30 分钟，High（196人）每 1 小时，Normal（1100人）每 4 小时，Low（500人）每 24 小时。实时推文通过 `/twitter/realtime` 端点获取，延迟约 1-2 分钟。
-
-**Q：监控了哪些 KOL？**
-A：目前监控 5000+ 加密 KOL，涵盖 Layer1/Layer2/DeFi/AI/Meme 等 27 个赛道。你也可以通过 `POST /subscriptions/?username=XXX` 添加自定义监控。
-
-**Q：API 返回空数据怎么办？**
-A：若返回 `[]`，通常是该时间窗口内暂无相关数据，可以扩大时间范围（增大 hours 参数）或稍后重试。
-
-**Q：如何充值？**
-A：访问 [ctmon.xyz](https://ctmon.xyz) 的账户页面进行充值。
-
-**Q：支持哪些语言的分析？**
-A：API 返回原始数据（主要是英文推文），AI 分析和整合输出支持中文。
+**Typical scenario costs:**
+- Morning intelligence brief: ~4¢/run
+- Alpha signal deep dive: ~6¢/run
+- Daily scheduled delivery: ~$1.2/month
 
 ---
 
-## 相关链接
+## FAQ
 
-- 官网：[ctmon.xyz](https://ctmon.xyz)
-- API 文档：[api.ctmon.xyz/docs](https://api.ctmon.xyz/docs)
-- Dashboard：[dashboard.ctmon.xyz](https://dashboard.ctmon.xyz)
+**Q: How fresh is the data?**
+A: KOL tweets are synced by influence tier: Ultra High (53 accounts) every 30 min, High (196) every 1h, Normal (1100) every 4h, Low (500) every 24h. Real-time tweets via `/twitter/realtime` have ~1-2 min latency.
+
+**Q: Which KOLs are monitored?**
+A: Currently 5000+ crypto KOLs across 27 sectors including Layer1/Layer2/DeFi/AI/Meme. You can also add custom monitoring via `POST /subscriptions/?username=XXX`.
+
+**Q: What if the API returns empty data?**
+A: If `[]` is returned, there's usually no data in that time window. Try expanding the time range (increase `hours` parameter) or retry later.
+
+**Q: What languages are supported?**
+A: The API returns raw data (primarily English tweets). AI analysis and synthesis output supports both English and Chinese.
+
+---
+
+## Links
+
+- API Docs: [api.ctmon.xyz/docs](https://api.ctmon.xyz/docs)
+- GitHub: [github.com/tizerluo/ct-monitor-skill](https://github.com/tizerluo/ct-monitor-skill)
+- ClawHub: [clawhub.ai/skills/ct-monitor](https://clawhub.ai/skills/ct-monitor)
+
+---
+
+---
+
+## 中文说明
+
+CT Monitor 是一个专为加密市场设计的 OpenClaw Skill，整合 5000+ KOL 推文、实时新闻、RSS、CoinGecko 价格数据，提取 Alpha 信号、识别新兴叙事、生成 AI 简报。
+
+### 快速上手
+
+1. 访问 [api.ctmon.xyz/docs](https://api.ctmon.xyz/docs) 注册并获取 API Key
+2. 在 OpenClaw 中执行 `/skill install ct-monitor`
+3. 配置 `CT_MONITOR_API_KEY` 环境变量
+
+### 6 大组合拳场景
+
+| 场景 | 示例问题 |
+| :--- | :--- |
+| 🌅 早间情报简报 | "给我一份今天的加密市场早报" |
+| 🎯 Alpha 信号深挖 | "最近 1 小时有什么 Alpha 信号？" |
+| 👤 KOL 深度画像 | "帮我深度分析一下 @cobie" |
+| 🏗️ 项目尽调 | "帮我快速调查一下 Hyperliquid" |
+| 🚨 安全预警响应 | "有没有最新的 Hack 或 Rug 消息？" |
+| 📅 定投决策辅助 | "帮我做本周市场复盘，给出定投建议" |
+
+详细使用说明请参考上方英文文档。
