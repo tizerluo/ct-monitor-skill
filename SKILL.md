@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.2.9
+version: 3.2.10
 metadata:
   openclaw:
     requires:
@@ -273,8 +273,8 @@ curl -s "https://api.ctmon.xyz/tweets/recent?username=cobie&limit=50" \
 
 **Step 3: Search how other KOLs reference and quote cobie**
 ```bash
-curl -s "https://api.ctmon.xyz/api/tweets/search?keyword=cobie&limit=30" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+curl -s "https://api.ctmon.xyz/tweets/feed?limit=100" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '[.[] | select(.text | ascii_downcase | contains("cobie"))]'
 ```
 
 **Synthesis prompt**:
@@ -584,7 +584,7 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=50" \
 | Market tweet feed | `GET /tweets/feed?limit=50` |
 | KOL historical tweets | `GET /tweets/recent?username=XXX&limit=20` |
 | KOL real-time tweets | `GET /twitter/realtime?username=XXX&limit=10` |
-| Keyword search | `GET /tweets/search?keyword=airdrop&limit=20` |
+| Keyword filter | `GET /tweets/feed?limit=100` + jq `select(.text \| contains("keyword"))` |
 | Unified news feed | `GET /info/feed?limit=30&min_score=0.5` |
 | Token price | `GET /price/token?symbol=BTC` |
 | Trending tokens | `GET /price/trending?hours=6` |
