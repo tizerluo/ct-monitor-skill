@@ -235,27 +235,62 @@ CT Monitor's real value is in **combining multiple data sources**. Here are 6 sc
 
 ## Scheduled Automation Examples
 
-Set up Cron tasks in OpenClaw to let CT Monitor work automatically:
+Use `openclaw cron add` to schedule any combo as a recurring automated job. OpenClaw runs a full AI agent session on schedule and delivers results directly to your Telegram (or other channels).
 
-**Daily briefing (8:00 AM):**
-```
-Every morning at 8am, use CT Monitor to generate a 24-hour market briefing
-(including AI brief + trending tokens + signals), summarize into 5 key points
-in English, and send to Telegram.
-```
-
-**Real-time signal alerts (every 15 min):**
-```
-Every 15 minutes, check CT Monitor for latest signals.
-If any signal has kol_count >= 3, immediately send a Telegram alert
-with token name, signal strength, and relevant KOLs.
+**Combo 1 — Daily morning brief (8am):**
+```bash
+openclaw cron add \
+  --name "CT Morning Brief" \
+  --cron "0 8 * * *" \
+  --tz "Asia/Shanghai" \
+  --session isolated \
+  --message "Run CT Monitor Combo 1: call /brief/generate?hours=24, /price/trending?hours=24, /signals/recent?hours=6. Synthesize into a structured morning report: market sentiment, top 3 narratives, tokens to watch, risk alerts." \
+  --announce \
+  --channel telegram
 ```
 
-**Weekly review (Sunday 8:00 PM):**
+**Combo 2 — Alpha signal alert (every 15 min, fires only when signal found):**
+```bash
+openclaw cron add \
+  --name "CT Signal Alert" \
+  --cron "*/15 * * * *" \
+  --session isolated \
+  --message "Call CT Monitor /signals/recent?hours=0.25&min_score=60. If any signal has kol_count >= 3, run the full Combo 2 deep dive on that token and send an alert. If no qualifying signals, stay silent." \
+  --announce \
+  --channel telegram
 ```
-Every Sunday at 8pm, use CT Monitor to generate a weekly market review
-including market trends, hot sectors, and tokens to watch, send to Telegram.
+
+**Combo 5 — Security watch (every 15 min, fires only on confirmed events):**
+```bash
+openclaw cron add \
+  --name "CT Security Watch" \
+  --cron "*/15 * * * *" \
+  --session isolated \
+  --message "Check CT Monitor for hack/exploit/rug mentions in /tweets/feed and /info/feed. If 3+ KOLs mention the same security event, run Combo 5 analysis and send an URGENT alert. If nothing found, stay silent." \
+  --announce \
+  --channel telegram
 ```
+
+**Combo 10 — Weekly sector rotation (Sunday 9pm):**
+```bash
+openclaw cron add \
+  --name "CT Sector Rotation" \
+  --cron "0 21 * * 0" \
+  --tz "Asia/Shanghai" \
+  --session isolated \
+  --message "Run CT Monitor Combo 10: compare trending data 24h vs 7d, signal acceleration 6h vs 24h, media attention by sector. Generate weekly sector rotation matrix with reallocation suggestions." \
+  --announce \
+  --channel telegram
+```
+
+**Manage your jobs:**
+```bash
+openclaw cron list
+openclaw cron runs --id <job-id>
+openclaw cron remove <job-id>
+```
+
+> 💡 **How it works**: OpenClaw runs a full AI agent session at the scheduled time — it calls the APIs, synthesizes the data, and delivers the result directly to your Telegram. You don't need to be online.
 
 ---
 

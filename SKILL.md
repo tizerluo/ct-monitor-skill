@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.1.0
+version: 3.2.0
 metadata:
   openclaw:
     requires:
@@ -87,6 +87,18 @@ curl -s "https://api.ctmon.xyz/signals/recent?hours=6&min_score=60" \
 **Synthesis prompt**:
 > Above is 24h market data (AI briefing + trending tokens + signals). Generate a structured morning report including: ① Overall market sentiment (Bullish/Bearish/Neutral) ② Top 3 narratives today ③ Tokens to watch (with reasons) ④ Risk alerts for today
 
+> 🤖 **Automate this combo** — run every morning at 8am and deliver to Telegram:
+> ```bash
+> openclaw cron add \
+>   --name "CT Morning Brief" \
+>   --cron "0 8 * * *" \
+>   --tz "Asia/Shanghai" \
+>   --session isolated \
+>   --message "Run CT Monitor Combo 1: call /brief/generate?hours=24, /price/trending?hours=24, /signals/recent?hours=6. Synthesize into a structured morning report: market sentiment, top 3 narratives, tokens to watch, risk alerts." \
+>   --announce \
+>   --channel telegram
+> ```
+
 ---
 
 ### Combo 2: Alpha Signal Deep Dive (When opportunity appears)
@@ -126,6 +138,17 @@ curl -s "https://api.ctmon.xyz/users/top?limit=20" \
 
 **Synthesis prompt**:
 > Above is multi-dimensional data on $PENGU (signals + price + KOL tweets + news + KOL influence). Generate a signal analysis report: ① Signal strength rating (Strong/Medium/Weak) ② Quality assessment of mentioning KOLs ③ Price context analysis ④ News corroboration ⑤ Trade suggestion (with risk warning)
+
+> 🤖 **Automate this combo** — check every 15 minutes, alert only when a real signal appears:
+> ```bash
+> openclaw cron add \
+>   --name "CT Signal Alert" \
+>   --cron "*/15 * * * *" \
+>   --session isolated \
+>   --message "Call CT Monitor /signals/recent?hours=0.25&min_score=60. If any signal has kol_count >= 3, run the full Combo 2 deep dive on that token (price + KOL tweets + news) and send an alert. If no qualifying signals, stay silent." \
+>   --announce \
+>   --channel telegram
+> ```
 
 ---
 
@@ -223,6 +246,17 @@ curl -s "https://api.ctmon.xyz/signals/recent?hours=0.25" \
 **Synthesis prompt**:
 > Above is security event data (KOL tweets + news + price + real-time signals). Generate a security flash report: ① Event confirmation (real or FUD) ② Impact scope assessment ③ Affected assets analysis ④ Urgency rating (High/Medium/Low) ⑤ Recommended actions
 
+> 🤖 **Automate this combo** — monitor every 15 minutes, alert immediately on confirmed security events:
+> ```bash
+> openclaw cron add \
+>   --name "CT Security Watch" \
+>   --cron "*/15 * * * *" \
+>   --session isolated \
+>   --message "Call CT Monitor /tweets/feed?limit=100 and filter for hack/exploit/rug/drain/emergency/pause/vulnerability. Also check /info/feed?limit=30 for security news. If 3+ KOLs mention the same security event, run the full Combo 5 analysis and send an URGENT alert. If nothing found, stay silent." \
+>   --announce \
+>   --channel telegram
+> ```
+
 ---
 
 ### Combo 6: DCA Decision Support (Weekly review)
@@ -287,6 +321,18 @@ curl -s "https://api.ctmon.xyz/price/trending?hours=24" \
 **Synthesis prompt**:
 > Above is narrative heat data (sector tweet counts + signals + trending prices). Generate a narrative trend report: ① Narrative heat ranking (Top 5) ② Price validation for each (early-stage vs. already priced in) ③ Overheating warnings ④ Emerging narrative alerts (high tweet count but low price movement = early signal)
 
+> 🤖 **Automate this combo** — daily narrative pulse delivered every evening:
+> ```bash
+> openclaw cron add \
+>   --name "CT Narrative Pulse" \
+>   --cron "0 20 * * *" \
+>   --tz "Asia/Shanghai" \
+>   --session isolated \
+>   --message "Run CT Monitor Combo 7: scan /tweets/feed for sector keywords (AI agent, RWA, DePIN, BTCFi, restaking, meme, GameFi), check /signals/recent?hours=24, check /price/trending?hours=24. Generate narrative heat ranking with early-stage vs. priced-in analysis." \
+>   --announce \
+>   --channel telegram
+> ```
+
 ---
 
 ### Combo 8: Airdrop & Event Hunter (Never miss an opportunity)
@@ -315,6 +361,18 @@ curl -s "https://api.ctmon.xyz/signals/recent?hours=24" \
 
 **Synthesis prompt**:
 > Above is event-related data (KOL tweets + news + signals). Generate an event hunter report: ① Upcoming event list (sorted by urgency/deadline) ② Participation value assessment for each (effort vs. expected reward) ③ Risk flags (potential scams or low-quality projects) ④ Action checklist (what to do and by when)
+
+> 🤖 **Automate this combo** — daily airdrop scan every morning before the brief:
+> ```bash
+> openclaw cron add \
+>   --name "CT Airdrop Hunter" \
+>   --cron "0 7 * * *" \
+>   --tz "Asia/Shanghai" \
+>   --session isolated \
+>   --message "Run CT Monitor Combo 8: scan /tweets/feed for airdrop/snapshot/TGE/unlock/claim/whitelist/mint keywords, check /info/feed for event news, check /signals/recent?hours=24. Generate an event list sorted by urgency with participation value assessment and action checklist." \
+>   --announce \
+>   --channel telegram
+> ```
 
 ---
 
@@ -348,6 +406,18 @@ done
 
 **Synthesis prompt**:
 > Above is tweet data from the top 5 most influential KOLs (real-time + historical). Generate a smart money tracker report: ① Top KOL recent focus summary (what each is watching) ② Overlapping positions (tokens/projects multiple whales are mentioning) ③ Conviction signals (repeated mentions over time = high conviction) ④ Divergence alerts (when top KOLs disagree — note both sides) ⑤ Quiet accumulation signals (mentions without price movement yet)
+
+> 🤖 **Automate this combo** — daily whale watch delivered at noon:
+> ```bash
+> openclaw cron add \
+>   --name "CT Whale Watch" \
+>   --cron "0 12 * * *" \
+>   --tz "Asia/Shanghai" \
+>   --session isolated \
+>   --message "Run CT Monitor Combo 9: get /users/top?limit=20, then fetch real-time and historical tweets for the top 5 KOLs. Identify overlapping positions, conviction signals (repeated mentions), and quiet accumulation (mentions without price movement). Report only tokens mentioned by 2+ top KOLs." \
+>   --announce \
+>   --channel telegram
+> ```
 
 ---
 
@@ -390,6 +460,18 @@ curl -s "https://api.ctmon.xyz/info/feed?limit=50" \
 **Synthesis prompt**:
 > Above is sector rotation data (24h vs. 7d trending + signal acceleration + media attention). Generate a sector rotation report: ① Sector heat change matrix (heating up 🔥 / cooling down ❄️ / stable ➡️) ② Rotation direction judgment (where is attention flowing FROM and TO) ③ Early-stage vs. late-stage identification for each sector ④ Reallocation suggestions (which sectors to increase/decrease exposure)
 
+> 🤖 **Automate this combo** — weekly sector rotation report every Sunday evening:
+> ```bash
+> openclaw cron add \
+>   --name "CT Sector Rotation" \
+>   --cron "0 21 * * 0" \
+>   --tz "Asia/Shanghai" \
+>   --session isolated \
+>   --message "Run CT Monitor Combo 10: compare /price/trending?hours=24 vs hours=168, compare /signals/recent?hours=6 vs hours=24, scan /info/feed for sector media attention. Generate weekly sector rotation matrix with heating/cooling/stable ratings and reallocation suggestions." \
+>   --announce \
+>   --channel telegram
+> ```
+
 ---
 
 ### Quick API Reference
@@ -413,30 +495,96 @@ curl -s "https://api.ctmon.xyz/info/feed?limit=50" \
 
 ## OpenClaw Cron Examples
 
-**Hourly flash briefing**:
-```yaml
-schedule: "0 * * * *"
-task: |
-  Call GET /brief/generate?hours=1 to get the last 1-hour AI briefing.
-  Summarize into 5 key bullet points and send to Telegram.
+Use `openclaw cron add` to schedule any combo as a recurring automated job. All jobs below use `--session isolated` (dedicated agent turn, no main chat spam) with `--announce --channel telegram` delivery.
+
+**Combo 1 — Daily morning brief (8am Shanghai)**:
+```bash
+openclaw cron add \
+  --name "CT Morning Brief" \
+  --cron "0 8 * * *" \
+  --tz "Asia/Shanghai" \
+  --session isolated \
+  --message "Run CT Monitor Combo 1: call /brief/generate?hours=24, /price/trending?hours=24, /signals/recent?hours=6. Synthesize into a structured morning report: market sentiment, top 3 narratives, tokens to watch, risk alerts." \
+  --announce \
+  --channel telegram
 ```
 
-**Daily comprehensive briefing**:
-```yaml
-schedule: "0 8 * * *"
-task: |
-  1. Call GET /brief/generate?hours=24 for 24h AI briefing
-  2. Call GET /price/trending?hours=24 for trending token analysis
-  3. Call GET /signals/recent?hours=6 for latest signals
-  Synthesize into a complete daily crypto market briefing and send to Telegram.
+**Combo 2 — Alpha signal alert (every 15 min, conditional)**:
+```bash
+openclaw cron add \
+  --name "CT Signal Alert" \
+  --cron "*/15 * * * *" \
+  --session isolated \
+  --message "Call CT Monitor /signals/recent?hours=0.25&min_score=60. If any signal has kol_count >= 3, run the full Combo 2 deep dive on that token (price + KOL tweets + news) and send an alert. If no qualifying signals, stay silent." \
+  --announce \
+  --channel telegram
 ```
 
-**Real-time signal monitoring**:
-```yaml
-schedule: "*/15 * * * *"
-task: |
-  Call GET /signals/recent?hours=0.25 for last 15-minute signals.
-  If any signal has kol_count >= 3, immediately send a Telegram alert.
+**Combo 5 — Security watch (every 15 min, conditional)**:
+```bash
+openclaw cron add \
+  --name "CT Security Watch" \
+  --cron "*/15 * * * *" \
+  --session isolated \
+  --message "Call CT Monitor /tweets/feed?limit=100 and filter for hack/exploit/rug/drain/emergency/pause/vulnerability. Also check /info/feed?limit=30 for security news. If 3+ KOLs mention the same security event, run the full Combo 5 analysis and send an URGENT alert. If nothing found, stay silent." \
+  --announce \
+  --channel telegram
+```
+
+**Combo 7 — Narrative pulse (daily 8pm)**:
+```bash
+openclaw cron add \
+  --name "CT Narrative Pulse" \
+  --cron "0 20 * * *" \
+  --tz "Asia/Shanghai" \
+  --session isolated \
+  --message "Run CT Monitor Combo 7: scan /tweets/feed for sector keywords (AI agent, RWA, DePIN, BTCFi, restaking, meme, GameFi), check /signals/recent?hours=24, check /price/trending?hours=24. Generate narrative heat ranking with early-stage vs. priced-in analysis." \
+  --announce \
+  --channel telegram
+```
+
+**Combo 8 — Airdrop hunter (daily 7am)**:
+```bash
+openclaw cron add \
+  --name "CT Airdrop Hunter" \
+  --cron "0 7 * * *" \
+  --tz "Asia/Shanghai" \
+  --session isolated \
+  --message "Run CT Monitor Combo 8: scan /tweets/feed for airdrop/snapshot/TGE/unlock/claim/whitelist/mint keywords, check /info/feed for event news, check /signals/recent?hours=24. Generate an event list sorted by urgency with participation value assessment and action checklist." \
+  --announce \
+  --channel telegram
+```
+
+**Combo 9 — Whale watch (daily noon)**:
+```bash
+openclaw cron add \
+  --name "CT Whale Watch" \
+  --cron "0 12 * * *" \
+  --tz "Asia/Shanghai" \
+  --session isolated \
+  --message "Run CT Monitor Combo 9: get /users/top?limit=20, then fetch real-time and historical tweets for the top 5 KOLs. Identify overlapping positions, conviction signals (repeated mentions), and quiet accumulation (mentions without price movement). Report only tokens mentioned by 2+ top KOLs." \
+  --announce \
+  --channel telegram
+```
+
+**Combo 10 — Sector rotation (weekly Sunday 9pm)**:
+```bash
+openclaw cron add \
+  --name "CT Sector Rotation" \
+  --cron "0 21 * * 0" \
+  --tz "Asia/Shanghai" \
+  --session isolated \
+  --message "Run CT Monitor Combo 10: compare /price/trending?hours=24 vs hours=168, compare /signals/recent?hours=6 vs hours=24, scan /info/feed for sector media attention. Generate weekly sector rotation matrix with heating/cooling/stable ratings and reallocation suggestions." \
+  --announce \
+  --channel telegram
+```
+
+**Manage your jobs**:
+```bash
+openclaw cron list
+openclaw cron runs --id <job-id>
+openclaw cron edit <job-id> --message "Updated prompt"
+openclaw cron remove <job-id>
 ```
 
 ## Pricing Reference
