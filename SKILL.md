@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.2.8
+version: 3.2.9
 metadata:
   openclaw:
     requires:
@@ -267,7 +267,7 @@ curl -s "https://api.ctmon.xyz/api/twitter/realtime?username=cobie&limit=20" \
 
 **Step 2: Get historical tweets (longer timespan)**
 ```bash
-curl -s "https://api.ctmon.xyz/api/tweets/recent?username=cobie&limit=50" \
+curl -s "https://api.ctmon.xyz/tweets/recent?username=cobie&limit=50" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
@@ -502,8 +502,8 @@ done
 ```bash
 for user in cobie VitalikButerin cz_binance inversebrah DegenSpartan; do
   echo "=== $user ===" && \
-  curl -s "https://api.ctmon.xyz/api/tweets/recent?username=$user&limit=20" \
-    -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.[].text'
+  curl -s "https://api.ctmon.xyz/tweets/recent?username=$user&limit=20" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.[].text'
 done
 ```
 
