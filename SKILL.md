@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.2.6
+version: 3.2.7
 metadata:
   openclaw:
     requires:
@@ -54,7 +54,7 @@ metadata:
 | **Security Alert**<br>_"Any hack news?"_ | `GET /tweets/feed?limit=50` + jq filter | Security event summary + urgency rating |
 | **Watchlist Management**<br>_"Add @pump_fun to monitoring"_ | `POST /subscriptions/?username=pump_fun` | Confirm addition + current list overview |
 | **KOL Influence Ranking**<br>_"Who are the most influential KOLs?"_ | `GET /users/top?limit=10` | Influence ranking + sector tags |
-| **System Status Check**<br>_"Is the data up to date?"_ | `GET /status/sync` | Sync status + last update time |
+| **System Status Check**<br>_"Is the data up to date?"_ | `GET /price/summary` | Market overview + connectivity check |
 
 ## Instructions
 
@@ -593,7 +593,7 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=50" \
 | KOL ranking | `GET /users/top?limit=10` |
 | Add to watchlist | `POST /subscriptions/?username=pump_fun` |
 | Remove from watchlist | `DELETE /subscriptions/pump_fun` |
-| System status | `GET /status/sync` |
+| System status | `GET /price/summary` |
 
 ## OpenClaw Cron Examples
 
