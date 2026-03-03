@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.2.4
+version: 3.2.5
 metadata:
   openclaw:
     requires:
@@ -48,7 +48,7 @@ metadata:
 | **Alpha Signal Hunt (Regular)**<br>_"Any signals in the last 6 hours?"_ | `GET /signals/recent?hours=6` | Signal summary + trend analysis (1¢) |
 | **Unified News Feed**<br>_"Latest crypto news?"_ | `GET /info/feed?limit=30` | News + RSS deduplicated + quality scored |
 | **Token Price Query**<br>_"What's BTC price?"_ | `GET /price/token?symbol=BTC` | Price + 1H/24H/7D change |
-| **Trending Token Analysis**<br>_"What tokens are hot right now?"_ | `GET /price/trending?hours=6` | CoinGecko trending + KOL mention analysis |
+| **Trending Token Analysis**<br>_"What tokens are hot right now?"_ | `GET /price/trending` + `/signals/recent` + `/info/feed` + `/price/summary` → **Combo 1.5** | Multi-factor heat ranking: KOL mentions × CoinGecko rank × price × news coverage |
 | **AI Briefing**<br>_"Give me today's briefing"_ | `GET /brief/generate?hours=24` | Multi-source AI briefing (tweets + news + price) |
 | **Flash Briefing**<br>_"What happened in the last hour?"_ | `GET /brief/generate?hours=1` | 1H flash briefing (6¢) |
 | **Security Alert**<br>_"Any hack news?"_ | `GET /tweets/feed?limit=50` + jq filter | Security event summary + urgency rating |
@@ -130,6 +130,72 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
 >   --announce \
 >   --channel telegram
 > ```
+
+---
+
+### Combo 1.5: Trending Token Discovery (What's hot and why?)
+
+> Answer "What tokens are hot right now and why?" with multi-dimensional heat analysis. Total cost ~4¢.
+
+**Step 1: Trending tokens — KOL mentions + CoinGecko rank + price**
+```bash
+curl -s "https://api.ctmon.xyz/api/price/trending?hours=24" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+```
+
+**Step 2: Alpha signals — check if KOL consensus has formed**
+```bash
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+```
+
+**Step 3: News feed — check media coverage for hot tokens**
+```bash
+curl -s "https://api.ctmon.xyz/api/info/feed?limit=30" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+```
+
+**Step 4: Market baseline — BTC/ETH price to judge relative strength**
+```bash
+curl -s "https://api.ctmon.xyz/api/price/summary" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+```
+
+**Synthesis prompt**:
+> You have received four data sources:
+> - Source A: trending token list — each item: `symbol`, `cg_rank` (CoinGecko trending rank, 1=hottest), `mention_count` (distinct KOLs mentioning it), `price_change` (24h % from CoinGecko), `top_kols`, `sample_tweets`
+> - Source B: alpha signals — tokens where multiple KOLs are simultaneously mentioning
+> - Source C: news feed — recent news and RSS articles
+> - Source D: market summary — BTC/ETH baseline prices and 24h changes
+>
+> Generate a **Markdown-formatted** trending token report:
+>
+> **Header**: "🔥 过去 [N] 小时趋势币分析" with current timestamp
+>
+> **📊 市场基准**: One line — BTC and ETH 24h change from Source D. This is the baseline to judge relative strength.
+>
+> **📈 热度排行榜** — use a Markdown table, sorted by `mention_count` descending (ties broken by `abs(price_change)` descending):
+> | 信号 | 代币 | KOL 提及 | Top KOLs | 24h 涨跌 | CG 排名 | 新闻 | 热度原因 |
+> |------|------|---------|---------|---------|---------|------|---------|
+> | ⚡ | $BTC | 52 | AshCrypto, CoinDesk, lookonchain | -2.11% | #4 | ✅ | 宏观压力下的避险共识，多 KOL 讨论支撑位 |
+> | — | $RIVER | 4 | KOL1, KOL2 | +21.12% | #7 | ❌ | 跨链稳定币叙事 + 官方补偿方案 |
+>
+> Rules for the table:
+> - Only include tokens where `mention_count >= 2`, sorted by `mention_count` desc; ties broken by `abs(price_change)` desc
+> - Signal column: `⚡` if token appears in Source B (signals), otherwise `—`
+> - Top KOLs: list up to 3 names from `top_kols` field
+> - 24h Change: use `price_change` field (not `price_change_24h`); format as `+X.XX%` or `-X.XX%`
+> - News column: `✅` if Source C contains any article mentioning this token, otherwise `❌`
+> - Heat Reason ("热度原因"): synthesize from `sample_tweets` + news coverage + price behavior — **never fabricate**; if no clear reason found, write "KOL 提及，原因不明"
+> - Price direction label: compare token's `price_change` against BTC baseline from Source D — if token is up while BTC is down, label as "强势（逆势上涨）"; if token is down more than BTC, label as "弱势"; do NOT use fixed thresholds like ">+20%"
+>
+> **⚠️ 风险警告** (after the table):
+> - For any token with `price_change < -50%`: `⚠️ $SYMBOL 异常暴跌 (X%)，需调查原因 — 可能是操盘/利空/流动性危机`
+> - For any token with `cg_rank ≤ 5` AND `mention_count = 0`: `⚠️ CoinGecko 热榜但零 KOL 覆盖：$SYMBOL (X%) — 无 KOL 背书，谨慎追高`
+>
+> **Language rule**: Detect the user's language and write the ENTIRE report in that language. Never mix languages. Proper nouns (DeFi, RWA, $BTC, KOL names) stay in original form.
+>
+> **Hard rules**: Never fabricate. Use `price_change` field (not `price_change_24h`). Tokens with `mention_count < 2` are silently omitted from main table but may appear in warnings.
 
 ---
 
