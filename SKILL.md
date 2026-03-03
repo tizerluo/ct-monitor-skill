@@ -21,7 +21,7 @@ metadata:
 
 ## Configuration
 
-**Base URL**: `https://api.ctmon.xyz`
+**Base URL**: `https://api.ctmon.xyz/api`
 **API Key**: Read from environment variable `$CT_MONITOR_API_KEY` (all curl commands use `-H "Authorization: Bearer $CT_MONITOR_API_KEY"`)
 
 ## Core Directives
@@ -68,19 +68,19 @@ metadata:
 
 **Step 1: Get AI comprehensive briefing**
 ```bash
-curl -s "https://api.ctmon.xyz/brief/generate?hours=24" \
+curl -s "https://api.ctmon.xyz/api/brief/generate?hours=24" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.report'
 ```
 
 **Step 2: Trending tokens + KOL mention analysis**
 ```bash
-curl -s "https://api.ctmon.xyz/price/trending?hours=24" \
+curl -s "https://api.ctmon.xyz/api/price/trending?hours=24" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 3: Last 6h high-frequency signals**
 ```bash
-curl -s "https://api.ctmon.xyz/signals/recent?hours=6&min_score=60" \
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
@@ -107,32 +107,32 @@ curl -s "https://api.ctmon.xyz/signals/recent?hours=6&min_score=60" \
 
 **Step 1: Discover signals**
 ```bash
-curl -s "https://api.ctmon.xyz/signals/recent?hours=1&min_score=60" \
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=1&min_score=60" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 2: Query token price and % change** (e.g. $PENGU)
 ```bash
-curl -s "https://api.ctmon.xyz/price/token?symbol=PENGU" \
+curl -s "https://api.ctmon.xyz/api/price/token?symbol=PENGU" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 3: See what KOLs are actually saying**
 ```bash
-curl -s "https://api.ctmon.xyz/tweets/feed?limit=100" \
+curl -s "https://api.ctmon.xyz/api/tweets/feed?limit=100" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
   jq '[.[] | select(.text | test("PENGU|\\$PENGU"; "i"))]'
 ```
 
 **Step 4: Related news and RSS**
 ```bash
-curl -s "https://api.ctmon.xyz/info/feed?coin=PENGU&limit=20" \
+curl -s "https://api.ctmon.xyz/api/info/feed?coin=PENGU&limit=20" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 5: Assess influence weight of mentioning KOLs**
 ```bash
-curl -s "https://api.ctmon.xyz/users/top?limit=20" \
+curl -s "https://api.ctmon.xyz/api/users/top?limit=20" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
@@ -158,19 +158,19 @@ curl -s "https://api.ctmon.xyz/users/top?limit=20" \
 
 **Step 1: Get latest real-time tweets** (e.g. @cobie)
 ```bash
-curl -s "https://api.ctmon.xyz/twitter/realtime?username=cobie&limit=20" \
+curl -s "https://api.ctmon.xyz/api/twitter/realtime?username=cobie&limit=20" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 2: Get historical tweets (longer timespan)**
 ```bash
-curl -s "https://api.ctmon.xyz/tweets/recent?username=cobie&limit=50" \
+curl -s "https://api.ctmon.xyz/api/tweets/recent?username=cobie&limit=50" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 3: Search how other KOLs reference and quote cobie**
 ```bash
-curl -s "https://api.ctmon.xyz/tweets/search?keyword=cobie&limit=30" \
+curl -s "https://api.ctmon.xyz/api/tweets/search?keyword=cobie&limit=30" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
@@ -185,26 +185,26 @@ curl -s "https://api.ctmon.xyz/tweets/search?keyword=cobie&limit=30" \
 
 **Step 1: KOL opinion panorama** (e.g. Hyperliquid)
 ```bash
-curl -s "https://api.ctmon.xyz/tweets/feed?limit=100" \
+curl -s "https://api.ctmon.xyz/api/tweets/feed?limit=100" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
   jq '[.[] | select(.text | test("hyperliquid|HYPE"; "i"))]'
 ```
 
 **Step 2: Related news and RSS**
 ```bash
-curl -s "https://api.ctmon.xyz/info/feed?coin=HYPE&limit=20" \
+curl -s "https://api.ctmon.xyz/api/info/feed?coin=HYPE&limit=20" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 3: Price data**
 ```bash
-curl -s "https://api.ctmon.xyz/price/token?symbol=HYPE" \
+curl -s "https://api.ctmon.xyz/api/price/token?symbol=HYPE" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 4: Last 24H signals**
 ```bash
-curl -s "https://api.ctmon.xyz/signals/recent?hours=24" \
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=24" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
@@ -219,27 +219,27 @@ curl -s "https://api.ctmon.xyz/signals/recent?hours=24" \
 
 **Step 1: Confirm the event**
 ```bash
-curl -s "https://api.ctmon.xyz/tweets/feed?limit=100" \
+curl -s "https://api.ctmon.xyz/api/tweets/feed?limit=100" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
   jq '[.[] | select(.text | test("hack|exploit|rug|drain|emergency|pause|vulnerability"; "i"))]'
 ```
 
 **Step 2: Check news coverage**
 ```bash
-curl -s "https://api.ctmon.xyz/info/feed?limit=30" \
+curl -s "https://api.ctmon.xyz/api/info/feed?limit=30" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
   jq '[.[] | select(.title | test("hack|exploit|rug|security"; "i"))]'
 ```
 
 **Step 3: Check affected token price**
 ```bash
-curl -s "https://api.ctmon.xyz/price/token?symbol=XXX" \
+curl -s "https://api.ctmon.xyz/api/price/token?symbol=XXX" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 4: Last 15-minute panic signals**
 ```bash
-curl -s "https://api.ctmon.xyz/signals/recent?hours=0.25" \
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=0.25" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
@@ -265,25 +265,25 @@ curl -s "https://api.ctmon.xyz/signals/recent?hours=0.25" \
 
 **Step 1: Get latest market briefing**
 ```bash
-curl -s "https://api.ctmon.xyz/brief/generate?hours=24" \
+curl -s "https://api.ctmon.xyz/api/brief/generate?hours=24" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.report'
 ```
 
 **Step 2: Last 24H trending tokens**
 ```bash
-curl -s "https://api.ctmon.xyz/price/trending?hours=24" \
+curl -s "https://api.ctmon.xyz/api/price/trending?hours=24" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 3: Major coin price overview**
 ```bash
-curl -s "https://api.ctmon.xyz/price/summary" \
+curl -s "https://api.ctmon.xyz/api/price/summary" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 4: Recent signal summary**
 ```bash
-curl -s "https://api.ctmon.xyz/signals/recent?hours=6" \
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
@@ -300,7 +300,7 @@ curl -s "https://api.ctmon.xyz/signals/recent?hours=6" \
 ```bash
 for sector in "AI agent" "RWA" "DePIN" "BTCFi" "restaking" "meme" "GameFi"; do
   echo "=== $sector ===" && \
-  curl -s "https://api.ctmon.xyz/tweets/feed?limit=100" \
+  curl -s "https://api.ctmon.xyz/api/tweets/feed?limit=100" \
     -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
     jq --arg s "$sector" '[.[] | select(.text | test($s; "i"))] | length'
 done
@@ -308,13 +308,13 @@ done
 
 **Step 2: Check signal-level resonance across narratives**
 ```bash
-curl -s "https://api.ctmon.xyz/signals/recent?hours=24&min_score=50" \
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=24&min_score=50" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 3: Verify if narratives are already reflected in prices**
 ```bash
-curl -s "https://api.ctmon.xyz/price/trending?hours=24" \
+curl -s "https://api.ctmon.xyz/api/price/trending?hours=24" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
@@ -341,21 +341,21 @@ curl -s "https://api.ctmon.xyz/price/trending?hours=24" \
 
 **Step 1: Scan KOL tweets for event keywords**
 ```bash
-curl -s "https://api.ctmon.xyz/tweets/feed?limit=100" \
+curl -s "https://api.ctmon.xyz/api/tweets/feed?limit=100" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
   jq '[.[] | select(.text | test("airdrop|snapshot|TGE|unlock|claim|whitelist|mint|IDO|launchpad"; "i"))]'
 ```
 
 **Step 2: Check news coverage for upcoming events**
 ```bash
-curl -s "https://api.ctmon.xyz/info/feed?limit=30" \
+curl -s "https://api.ctmon.xyz/api/info/feed?limit=30" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
   jq '[.[] | select(.title | test("airdrop|TGE|unlock|launch|snapshot"; "i"))]'
 ```
 
 **Step 3: Check if KOLs are concentrating attention on specific events**
 ```bash
-curl -s "https://api.ctmon.xyz/signals/recent?hours=24" \
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=24" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
@@ -382,7 +382,7 @@ curl -s "https://api.ctmon.xyz/signals/recent?hours=24" \
 
 **Step 1: Get the highest-influence KOL list**
 ```bash
-curl -s "https://api.ctmon.xyz/users/top?limit=20" \
+curl -s "https://api.ctmon.xyz/api/users/top?limit=20" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.[].username'
 ```
 
@@ -390,7 +390,7 @@ curl -s "https://api.ctmon.xyz/users/top?limit=20" \
 ```bash
 for user in cobie VitalikButerin cz_binance inversebrah DegenSpartan; do
   echo "=== $user ===" && \
-  curl -s "https://api.ctmon.xyz/twitter/realtime?username=$user&limit=10" \
+  curl -s "https://api.ctmon.xyz/api/twitter/realtime?username=$user&limit=10" \
     -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.tweets[].text'
 done
 ```
@@ -399,7 +399,7 @@ done
 ```bash
 for user in cobie VitalikButerin cz_binance inversebrah DegenSpartan; do
   echo "=== $user ===" && \
-  curl -s "https://api.ctmon.xyz/tweets/recent?username=$user&limit=20" \
+  curl -s "https://api.ctmon.xyz/api/tweets/recent?username=$user&limit=20" \
     -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.[].text'
 done
 ```
@@ -427,25 +427,25 @@ done
 
 **Step 1: Compare short-term vs. 7-day trending heat**
 ```bash
-curl -s "https://api.ctmon.xyz/price/trending?hours=24" \
+curl -s "https://api.ctmon.xyz/api/price/trending?hours=24" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.' > /tmp/trending_24h.json
 
-curl -s "https://api.ctmon.xyz/price/trending?hours=168" \
+curl -s "https://api.ctmon.xyz/api/price/trending?hours=168" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 2: Compare signal acceleration (6h vs. 24h)**
 ```bash
-curl -s "https://api.ctmon.xyz/signals/recent?hours=6" \
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 
-curl -s "https://api.ctmon.xyz/signals/recent?hours=24" \
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=24" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
 **Step 3: Check media attention shift by sector**
 ```bash
-curl -s "https://api.ctmon.xyz/info/feed?limit=50" \
+curl -s "https://api.ctmon.xyz/api/info/feed?limit=50" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
   jq '[.[] | {title: .title, sector: (
     if (.title | test("AI|agent"; "i")) then "AI"

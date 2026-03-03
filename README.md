@@ -39,7 +39,7 @@ Once installed, ask OpenClaw in natural language — it automatically calls the 
 
 ### Step 1: Get an API Key
 
-Visit [api.ctmon.xyz/docs](https://api.ctmon.xyz/docs) to register and get your API Key.
+Visit [api.ctmon.xyz/docs](https://api.ctmon.xyz/api/docs) to register and get your API Key.
 
 ### Step 2: Install the Skill in OpenClaw
 
@@ -337,7 +337,7 @@ A: The API returns raw data (primarily English tweets). AI analysis and synthesi
 
 ## Links
 
-- API Docs: [api.ctmon.xyz/docs](https://api.ctmon.xyz/docs)
+- API Docs: [api.ctmon.xyz/docs](https://api.ctmon.xyz/api/docs)
 - GitHub: [github.com/tizerluo/ct-monitor-skill](https://github.com/tizerluo/ct-monitor-skill)
 - ClawHub: [clawhub.ai/skills/ct-monitor](https://clawhub.ai/skills/ct-monitor)
 
@@ -351,7 +351,7 @@ CT Monitor 是一个专为加密市场设计的 OpenClaw Skill，整合 5000+ KO
 
 ### 快速上手
 
-1. 访问 [api.ctmon.xyz/docs](https://api.ctmon.xyz/docs) 注册并获取 API Key
+1. 访问 [api.ctmon.xyz/docs](https://api.ctmon.xyz/api/docs) 注册并获取 API Key
 2. 在 OpenClaw 中执行 `/skill install ct-monitor`
 3. 配置 `CT_MONITOR_API_KEY` 环境变量
 
