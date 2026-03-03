@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.0.1
+version: 3.1.0
 metadata:
   openclaw:
     requires:
@@ -255,6 +255,140 @@ curl -s "https://api.ctmon.xyz/signals/recent?hours=6" \
 
 **Synthesis prompt**:
 > Above is weekly market data (AI briefing + trending tokens + price overview + signals). Generate a weekly investment decision report: ① Market trend judgment (Bull/Bear/Sideways) ② Sectors to watch ③ Major coin allocation suggestions ④ Risk warnings ⑤ DCA strategy recommendations
+
+---
+
+### Combo 7: Narrative Trend Tracker (What story is the market telling?)
+
+> Identify which narratives are heating up and which are cooling down. Total cost ~3¢.
+
+**Step 1: Scan narrative heat by sector keywords**
+```bash
+for sector in "AI agent" "RWA" "DePIN" "BTCFi" "restaking" "meme" "GameFi"; do
+  echo "=== $sector ===" && \
+  curl -s "https://api.ctmon.xyz/tweets/feed?limit=100" \
+    -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+    jq --arg s "$sector" '[.[] | select(.text | test($s; "i"))] | length'
+done
+```
+
+**Step 2: Check signal-level resonance across narratives**
+```bash
+curl -s "https://api.ctmon.xyz/signals/recent?hours=24&min_score=50" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+```
+
+**Step 3: Verify if narratives are already reflected in prices**
+```bash
+curl -s "https://api.ctmon.xyz/price/trending?hours=24" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+```
+
+**Synthesis prompt**:
+> Above is narrative heat data (sector tweet counts + signals + trending prices). Generate a narrative trend report: ① Narrative heat ranking (Top 5) ② Price validation for each (early-stage vs. already priced in) ③ Overheating warnings ④ Emerging narrative alerts (high tweet count but low price movement = early signal)
+
+---
+
+### Combo 8: Airdrop & Event Hunter (Never miss an opportunity)
+
+> Surface upcoming airdrops, TGEs, unlock events, and snapshot deadlines. Total cost ~2¢.
+
+**Step 1: Scan KOL tweets for event keywords**
+```bash
+curl -s "https://api.ctmon.xyz/tweets/feed?limit=100" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+  jq '[.[] | select(.text | test("airdrop|snapshot|TGE|unlock|claim|whitelist|mint|IDO|launchpad"; "i"))]'
+```
+
+**Step 2: Check news coverage for upcoming events**
+```bash
+curl -s "https://api.ctmon.xyz/info/feed?limit=30" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+  jq '[.[] | select(.title | test("airdrop|TGE|unlock|launch|snapshot"; "i"))]'
+```
+
+**Step 3: Check if KOLs are concentrating attention on specific events**
+```bash
+curl -s "https://api.ctmon.xyz/signals/recent?hours=24" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+```
+
+**Synthesis prompt**:
+> Above is event-related data (KOL tweets + news + signals). Generate an event hunter report: ① Upcoming event list (sorted by urgency/deadline) ② Participation value assessment for each (effort vs. expected reward) ③ Risk flags (potential scams or low-quality projects) ④ Action checklist (what to do and by when)
+
+---
+
+### Combo 9: Smart Money Tracker (Follow the whales)
+
+> Identify what the most influential KOLs are quietly positioning in. Total cost ~4¢.
+
+**Step 1: Get the highest-influence KOL list**
+```bash
+curl -s "https://api.ctmon.xyz/users/top?limit=20" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.[].username'
+```
+
+**Step 2: Get real-time tweets from top 5 KOLs**
+```bash
+for user in cobie VitalikButerin cz_binance inversebrah DegenSpartan; do
+  echo "=== $user ===" && \
+  curl -s "https://api.ctmon.xyz/twitter/realtime?username=$user&limit=10" \
+    -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.tweets[].text'
+done
+```
+
+**Step 3: Get historical tweet patterns from top 5 KOLs**
+```bash
+for user in cobie VitalikButerin cz_binance inversebrah DegenSpartan; do
+  echo "=== $user ===" && \
+  curl -s "https://api.ctmon.xyz/tweets/recent?username=$user&limit=20" \
+    -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.[].text'
+done
+```
+
+**Synthesis prompt**:
+> Above is tweet data from the top 5 most influential KOLs (real-time + historical). Generate a smart money tracker report: ① Top KOL recent focus summary (what each is watching) ② Overlapping positions (tokens/projects multiple whales are mentioning) ③ Conviction signals (repeated mentions over time = high conviction) ④ Divergence alerts (when top KOLs disagree — note both sides) ⑤ Quiet accumulation signals (mentions without price movement yet)
+
+---
+
+### Combo 10: Sector Rotation Detector (Where is the money flowing?)
+
+> Detect which sectors are gaining momentum and which are cooling down. Total cost ~3¢.
+
+**Step 1: Compare short-term vs. 7-day trending heat**
+```bash
+curl -s "https://api.ctmon.xyz/price/trending?hours=24" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.' > /tmp/trending_24h.json
+
+curl -s "https://api.ctmon.xyz/price/trending?hours=168" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+```
+
+**Step 2: Compare signal acceleration (6h vs. 24h)**
+```bash
+curl -s "https://api.ctmon.xyz/signals/recent?hours=6" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+
+curl -s "https://api.ctmon.xyz/signals/recent?hours=24" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+```
+
+**Step 3: Check media attention shift by sector**
+```bash
+curl -s "https://api.ctmon.xyz/info/feed?limit=50" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+  jq '[.[] | {title: .title, sector: (
+    if (.title | test("AI|agent"; "i")) then "AI"
+    elif (.title | test("RWA|real.world"; "i")) then "RWA"
+    elif (.title | test("DePIN"; "i")) then "DePIN"
+    elif (.title | test("DeFi|defi"; "i")) then "DeFi"
+    elif (.title | test("meme|memecoin"; "i")) then "Meme"
+    else "Other" end
+  )}] | group_by(.sector) | map({sector: .[0].sector, count: length})'
+```
+
+**Synthesis prompt**:
+> Above is sector rotation data (24h vs. 7d trending + signal acceleration + media attention). Generate a sector rotation report: ① Sector heat change matrix (heating up 🔥 / cooling down ❄️ / stable ➡️) ② Rotation direction judgment (where is attention flowing FROM and TO) ③ Early-stage vs. late-stage identification for each sector ④ Reallocation suggestions (which sectors to increase/decrease exposure)
 
 ---
 

@@ -156,12 +156,80 @@ CT Monitor's real value is in **combining multiple data sources**. Here are 6 sc
 
 **OpenClaw will:**
 1. Call `/brief/generate?hours=24` → latest market briefing
-2. Call `/price/trending?hours=24` → last 24h trending tokens
+2. Call `/price/trending?hours=24` → last 24H trending tokens
 3. Call `/price/summary` → major coin price overview
 4. Call `/signals/recent?hours=6` → recent signal summary
 5. Synthesize into an investment decision report
 
 **You get:** Market trend judgment (Bull/Bear/Sideways) + Sectors to watch + Major coin allocation suggestions + Risk warnings + DCA strategy recommendations
+
+---
+
+### 🌊 Combo 7: Narrative Trend Tracker (What story is the market telling?)
+
+**You say:**
+> What narratives are hot right now? Which sectors are gaining momentum?
+
+**OpenClaw will:**
+1. Scan `/tweets/feed` filtered by sector keywords (AI, RWA, DePIN, BTCFi, etc.) → compare narrative heat across sectors
+2. Call `/signals/recent?hours=24` → check if narratives have signal-level resonance
+3. Call `/price/trending?hours=24` → verify if narratives are already reflected in prices
+4. Synthesize into a narrative heat map
+
+**You get:** Narrative heat ranking + Price validation (early vs. already priced in) + Overheating warnings + Emerging narrative alerts
+
+💡 **Best use case:** Spot the next hot narrative before it goes mainstream
+
+---
+
+### 🪂 Combo 8: Airdrop & Event Hunter (Never miss an opportunity)
+
+**You say:**
+> Any upcoming airdrops, TGEs, or unlock events worth paying attention to?
+
+**OpenClaw will:**
+1. Scan `/tweets/feed` filtered for airdrop/snapshot/TGE/unlock/claim keywords → surface event mentions
+2. Scan `/info/feed` for related news coverage
+3. Call `/signals/recent?hours=24` → check if KOLs are concentrating attention on specific events
+4. Synthesize into an event calendar with value assessment
+
+**You get:** Upcoming event list + Participation value assessment (effort vs. reward) + Risk flags (potential scams) + Action checklist
+
+💡 **Best use case:** Run this daily — airdrop windows close fast
+
+---
+
+### 🐋 Combo 9: Smart Money Tracker (Follow the whales)
+
+**You say:**
+> What are the most influential KOLs quietly positioning in lately?
+
+**OpenClaw will:**
+1. Call `/users/top?limit=20` → get the highest-influence KOL list
+2. Call `/twitter/realtime?username=XXX` for top 5 KOLs → their latest real-time tweets
+3. Call `/tweets/recent?username=XXX` for top 5 KOLs → historical tweet patterns
+4. Synthesize → identify common focus areas and quiet accumulation signals
+
+**You get:** Top KOL recent focus summary + Overlapping positions (tokens multiple whales are watching) + Conviction signals (repeated mentions over time) + Divergence alerts (when whales disagree)
+
+💡 **Best use case:** The best alpha often comes before the crowd notices
+
+---
+
+### 🔄 Combo 10: Sector Rotation Detector (Where is the money flowing?)
+
+**You say:**
+> Which sectors are gaining momentum and which are cooling down? Where should I rotate?
+
+**OpenClaw will:**
+1. Call `/price/trending?hours=24` vs `/price/trending?hours=168` → short-term vs. 7-day heat comparison
+2. Call `/signals/recent?hours=6` vs `/signals/recent?hours=24` → signal acceleration or deceleration
+3. Scan `/info/feed` filtered by sector keywords → media attention shift
+4. Synthesize into a sector rotation matrix
+
+**You get:** Sector heat change matrix (heating up / cooling down / stable) + Rotation direction judgment + Early-stage vs. late-stage sector identification + Reallocation suggestions
+
+💡 **Best use case:** Crypto moves in sector cycles — catching the rotation early is where the biggest gains are
 
 ---
 
