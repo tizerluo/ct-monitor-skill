@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.2.3
+version: 3.2.4
 metadata:
   openclaw:
     requires:
@@ -102,14 +102,20 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
 >
 > **💡 Notable Alpha**: Copy ALL Notable Alpha items from `.report` verbatim — do NOT reduce the count.
 >
-> **📈 Trending Tokens (CoinGecko × KOL Cross-Analysis)**:
-> This section shows the intersection of CoinGecko trending (market money moving) and KOL mentions (opinion moving).
-> - List ONLY tokens where `mention_count >= 2`, sorted by mention_count descending
-> - Format: `[⚡ if also in signals]$SYMBOL — KOL: {mention_count} mentions | 24h: {+/-X.XX% or N/A} | CG Rank: #{cg_rank}`
-> - If token is in signals: append `| Signal: {kol_count} KOLs confirmed`
-> - If `price_change` > +20% with `mention_count` >= 2: add `← price surge + KOL attention`
-> - If `price_change` < -50% with high `cg_rank` (≤3): add `⚠️ CG hot but crashing`
-> - After the main list, add one line for any token with `cg_rank` ≤ 5 AND `mention_count` = 0: `⚠️ CoinGecko hot but zero KOL coverage: $SYMBOL ({price_change}%) — no KOL backing, caution`
+> **📈 Trending Tokens (CoinGecko × KOL Cross-Analysis)** — use a Markdown table:
+> | Signal | Token | KOL Mentions | 24h Change | CG Rank | Note |
+> |--------|-------|-------------|------------|---------|------|
+> | ⚡ | $BTC | 52 | -1.32% | #6 | Signal: 8 KOLs confirmed |
+> | — | $RIVER | 4 | +28.82% | #7 | price surge + KOL attention |
+>
+> Rules for the table:
+> - Only include tokens where `mention_count >= 2`, sorted by mention_count descending
+> - Signal column: use `⚡` if token appears in signals data, otherwise `—`
+> - 24h Change: format as `+X.XX%` or `-X.XX%` using `price_change` field; use `N/A` only if field is null
+> - Note column: add "Signal: N KOLs confirmed" if in signals; add "price surge + KOL attention" if price_change > +20%; add "⚠️ CG hot but crashing" if price_change < -50% AND cg_rank ≤ 3
+> - After the table, add one warning line for any token with `cg_rank` ≤ 5 AND `mention_count` = 0: `⚠️ CoinGecko hot but zero KOL coverage: $SYMBOL (+X.XX%) — no KOL backing, caution`
+>
+> **Language rule**: Detect the user's language from the conversation context and write the ENTIRE report in that language (all section headers, analysis text, notes, and warnings). If the user writes in Chinese, the full report must be in Chinese. If in English, full English. Never mix languages.
 >
 > **Rules**: Never add metadata sections. Never fabricate. Use `price_change` field (not `price_change_24h`). Tokens with mention_count < 2 are silently omitted from main list.
 
