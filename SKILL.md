@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.2.15
+version: 3.2.16
 metadata:
   openclaw:
     requires:
@@ -355,11 +355,11 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=0.25" \
 
 > Identify which narratives are heating up and which are cooling down. Total cost ~3¢.
 
-**Step 1: Scan narrative heat by sector keywords**
+**Step 1: Scan narrative heat by sector keywords** (limit=3000 covers ~23h, a full trading day)
 ```bash
-for sector in "AI agent" "RWA" "DePIN" "BTCFi" "restaking" "meme" "GameFi"; do
+for sector in "agent" "AI" "RWA" "DePIN" "meme" "Solana" "stablecoin" "DeFi" "NFT" "restaking" "BTCFi" "GameFi"; do
   echo "=== $sector ===" && \
-  curl -s "https://api.ctmon.xyz/api/tweets/feed?limit=100" \
+  curl -s "https://api.ctmon.xyz/api/tweets/feed?limit=3000" \
     -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
     jq --arg s "$sector" '[.[] | select(.text | test($s; "i"))] | length'
 done
@@ -371,14 +371,55 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=24&min_score=50" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
-**Step 3: Verify if narratives are already reflected in prices**
+**Step 3a: Verify if narratives are already reflected in prices**
 ```bash
 curl -s "https://api.ctmon.xyz/api/price/trending?hours=24" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
+**Step 3b: Binance spot volume validation** — dynamically build symbols from Step 3a tokens where `mention_count >= 2`, append `USDT` suffix (e.g. `BTC` → `BTCUSDT`), then query Binance public API (no auth required):
+```bash
+curl -g -s 'https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","SOLUSDT","ETHUSDT"]' | \
+  jq '[.[] | {symbol, priceChangePercent, volume: (.volume | tonumber | floor), quoteVolume: (.quoteVolume | tonumber | floor), trades: .count}]'
+```
+> Replace the symbols array with actual tokens from Step 3a. Only include tokens that have a Binance USDT pair. Skip tokens not listed on Binance spot.
+
 **Synthesis prompt**:
-> Above is narrative heat data (sector tweet counts + signals + trending prices). Generate a narrative trend report: ① Narrative heat ranking (Top 5) ② Price validation for each (early-stage vs. already priced in) ③ Overheating warnings ④ Emerging narrative alerts (high tweet count but low price movement = early signal)
+> You have received three data sources:
+> - Source A: sector keyword tweet counts (from Step 1) — 12 keywords scanned across ~23h of KOL tweets
+> - Source B: alpha signals (from Step 2) — tokens with multi-KOL resonance in last 24h
+> - Source C: trending tokens + Binance spot volume (from Step 3a + 3b) — KOL mention counts, price changes, and Binance 24h volume/trade counts
+>
+> **Filter rule for "agent" keyword**: When counting "agent" mentions, exclude non-crypto contexts (real estate agents, travel agents, insurance agents, FBI agents, secret agents). Only count crypto/AI/on-chain/trading agent contexts (AI agent, on-chain agent, DeFi agent, AgentFi, trading bot agent, autonomous agent).
+>
+> Generate a **Markdown-formatted** narrative trend report:
+>
+> **① Narrative Heat Ranking** — table sorted by tweet count descending:
+> | Rank | Narrative | Tweet Count | Signal | Volume Signal | Status |
+> |------|-----------|-------------|--------|---------------|--------|
+> | #1 | agent | 121 | ⚡ $AI x5 KOL | 🔥 Surge | 🔥 Heating |
+> | #2 | AI | 104 | ⚡ $NEAR x3 KOL | 📢 Active | 🔥 Heating |
+> | #3 | meme | 44 | — | 🔇 Quiet | ➡️ Stable |
+>
+> Volume Signal column rules (from Step 3b Binance data):
+> - 🔥 Surge: quoteVolume > $500M in 24h OR trades > 500,000
+> - 📢 Active: quoteVolume $50M–$500M OR trades 50,000–500,000
+> - 🔇 Quiet: quoteVolume < $50M OR no Binance listing
+> - N/A: token not on Binance spot
+>
+> **② Three-Layer Signal Interpretation** — for each narrative in Top 5, assess:
+> - High tweets + Low volume = Retail discussion, institutions not yet in (Early signal 🌱)
+> - High volume + Low tweets = Institutions quietly accumulating (Hidden 🔍)
+> - High tweets + High volume = Narrative fully activated (May be late ⚠️)
+> - Low tweets + Low volume = Cooling or dormant (❄️)
+>
+> **③ Price Validation** — for Top 3 narratives: is the price already reflecting the narrative? (early-stage vs. already priced in)
+>
+> **④ Overheating Warnings** — flag any narrative where tweet count is very high but price has already moved >50% in 7d (FOMO risk)
+>
+> **⑤ Emerging Narrative Alerts** — high tweet count + low price movement + low volume = early signal worth watching
+>
+> **Language rule**: Detect the user's language and write the ENTIRE report in that language. Never mix languages.
 
 > 🤖 **Automate this combo** — daily narrative pulse delivered every evening:
 > ```bash
@@ -387,7 +428,7 @@ curl -s "https://api.ctmon.xyz/api/price/trending?hours=24" \
 >   --cron "0 20 * * *" \
 >   --tz "Asia/Shanghai" \
 >   --session isolated \
->   --message "Run CT Monitor Combo 5: scan /tweets/feed for sector keywords (AI agent, RWA, DePIN, BTCFi, restaking, meme, GameFi), check /signals/recent?hours=24, check /price/trending?hours=24. Generate narrative heat ranking with early-stage vs. priced-in analysis." \
+>   --message "Run CT Monitor Combo 5: scan /tweets/feed?limit=3000 for sector keywords (agent, AI, RWA, DePIN, meme, Solana, stablecoin, DeFi, NFT, restaking, BTCFi, GameFi) — for 'agent' keyword exclude non-crypto contexts (real estate/travel/insurance/FBI agents). Check /signals/recent?hours=24&min_score=50. Check /price/trending?hours=24 for mention_count>=2 tokens, then query Binance spot ticker/24hr for those tokens (append USDT suffix). Generate narrative heat ranking table with Volume Signal column (🔥Surge/📢Active/🔇Quiet), three-layer signal interpretation (high tweets+low volume=early signal, high volume+low tweets=hidden accumulation, both high=may be late), price validation, overheating warnings, and emerging narrative alerts." \
 >   --announce \
 >   --channel telegram
 > ```
@@ -597,7 +638,7 @@ openclaw cron add \
   --cron "0 20 * * *" \
   --tz "Asia/Shanghai" \
   --session isolated \
-  --message "Run CT Monitor Combo 5: scan /tweets/feed for sector keywords (AI agent, RWA, DePIN, BTCFi, restaking, meme, GameFi), check /signals/recent?hours=24, check /price/trending?hours=24. Generate narrative heat ranking with early-stage vs. priced-in analysis." \
+  --message "Run CT Monitor Combo 5: scan /tweets/feed?limit=3000 for sector keywords (agent, AI, RWA, DePIN, meme, Solana, stablecoin, DeFi, NFT, restaking, BTCFi, GameFi) — for 'agent' keyword exclude non-crypto contexts (real estate/travel/insurance/FBI agents). Check /signals/recent?hours=24&min_score=50. Check /price/trending?hours=24 for mention_count>=2 tokens, then query Binance spot ticker/24hr for those tokens (append USDT suffix). Generate narrative heat ranking table with Volume Signal column (🔥Surge/📢Active/🔇Quiet), three-layer signal interpretation (high tweets+low volume=early signal, high volume+low tweets=hidden accumulation, both high=may be late), price validation, overheating warnings, and emerging narrative alerts." \
   --announce \
   --channel telegram
 ```
