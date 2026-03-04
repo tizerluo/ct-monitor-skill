@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.2.14
+version: 3.2.15
 metadata:
   openclaw:
     requires:
@@ -64,7 +64,7 @@ metadata:
 
 ### Combo 1: Morning Intelligence Brief (Daily)
 
-> Daily morning briefing covering the past 24 hours of crypto markets. Total cost ~4¢.
+> Daily morning briefing covering the past 24 hours of crypto markets. Total cost ~5¢.
 
 **Step 1: Get AI comprehensive briefing**
 ```bash
@@ -85,11 +85,22 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
+**Step 4: Market overview + news feed (with source attribution)**
+```bash
+curl -s "https://api.ctmon.xyz/api/price/summary" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+
+curl -s "https://api.ctmon.xyz/api/info/feed?limit=30" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '[.[] | select(.score >= 50)] | sort_by(-.score)'
+```
+
 **Synthesis prompt**:
-> You have received three data sources:
+> You have received four data sources:
 > - Source A: `.report` — AI-generated briefing (Markdown string) with sections: Market Overview (prices), Key News, Sector Highlights, Notable Alpha. **If you received the full JSON object `{"report": "...", ...}` instead of a string, extract `.report` before proceeding. Never treat an empty `.report` as a reason to fabricate — if the field is genuinely empty, skip that section and note "briefing unavailable".**
 > - Source B: trending token list — each item: `symbol`, `cg_rank` (CoinGecko trending rank, 1=hottest), `mention_count` (distinct KOLs mentioning it), `price_change` (24h % from CoinGecko, accurate per-token), `top_kols`, `sample_tweets`
 > - Source C: alpha signals — each item: `keyword` (token), `kol_count`, `kols`, `sample_tweets`
+> - Source D: market summary — `global` (BTC dominance, total market cap, 24h change from CoinGecko) + `prices` (BTC/ETH/SOL/BNB real-time prices from Binance)
+> - Source E: news feed — each item: `title`, `source` (media name, e.g. "CNN", "Reuters", "PRNewswire", "Twitter"), `score` (AI quality score 0-100), `summary` (AI-generated Chinese summary), `url` (may be null for 6551 news)
 >
 > Generate a **Markdown-formatted** morning intelligence report with this exact structure:
 >
@@ -97,13 +108,18 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
 >
 > **📊 Market Overview**: Copy the Market Overview section from `.report` verbatim. Then append: `> 💡 KOL Signal: [what signals data shows, e.g. "$BTC confirmed by 9 KOLs in last 6h — bullish consensus"]`. Skip this line if signals is `[]`.
 >
-> **📰 Key News**: Copy ALL Key News items from `.report` verbatim — do NOT reduce the count. After each item add: `→ Impact: [one-line assessment]`
+> **📰 Key News**: Use Source E (info/feed) as the primary source — list all items with `score >= 50`, sorted by score descending. Format each item as:
+> `[source] Title → Impact: [one-line assessment]`
+> Example: `[Reuters] Fed holds rates steady → Impact: Risk-on sentiment, crypto likely to benefit short-term`
+> Cross-reference with Source A's Key News section to catch any important items missed by Source E. Never fabricate source names — use the exact `source` field value from the API response.
 >
-> **🔥 Sector Pulse**: Based on `.report`'s Sector Highlights + KOL tweet patterns, rate each sector 🔥 heating / ❄️ cooling / ➡️ stable. Format as a table.
+> **🔥 Sector Pulse**: Based on Source A's Sector Highlights + KOL tweet patterns from Source B/C, rate each sector 🔥 heating / ❄️ cooling / ➡️ stable. Also scan Source E for sector-related news to identify AI/RWA/DePIN/DeFi/Meme narrative shifts. Format as a table.
 >
-> **💡 Notable Alpha**: Copy ALL Notable Alpha items from `.report` verbatim — do NOT reduce the count.
+> **💡 Notable Alpha**: Use Source E (info/feed) as the primary source for high-signal items (`score >= 60`). Format each item as:
+> `[source] Title → Alpha: [one-line actionable insight]`
+> Cross-reference with Source A's Notable Alpha section for additional items. Never fabricate source names.
 >
-> **📈 Trending Tokens (CoinGecko × KOL Cross-Analysis)** — use a Markdown table:
+> **📈 Trending Tokens (KOL × Signal Cross-Analysis)** — use a Markdown table:
 > | Signal | Token | KOL Mentions | 24h Change | CG Rank | Note |
 > |--------|-------|-------------|------------|---------|------|
 > | ⚡ | $BTC | 52 | -1.32% | #6 | Signal: 8 KOLs confirmed |
@@ -116,9 +132,15 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
 > - Note column: add "Signal: N KOLs confirmed" if in signals; add "price surge + KOL attention" if price_change > +20%; add "⚠️ CG hot but crashing" if price_change < -50% AND cg_rank ≤ 3
 > - After the table, add one warning line for any token with `cg_rank` ≤ 5 AND `mention_count` = 0: `⚠️ CoinGecko hot but zero KOL coverage: $SYMBOL (+X.XX%) — no KOL backing, caution`
 >
-> **Language rule**: Detect the user's language from the conversation context and write the ENTIRE report in that language (all section headers, analysis text, notes, and warnings). If the user writes in Chinese, the full report must be in Chinese. If in English, full English. Never mix languages.
+> **🎯 DCA 参考信号** (based on Source D: price/summary):
+> - BTC 主导率：X%（>55% = BTC 主导期，山寨暂缓；<52% = 山寨轮动启动）
+> - 总市值 24H 变化：X%（判断是普涨还是结构性行情）
+> - 本日 DCA 一句话建议：根据 BTC 主导率 + 总市值变化 + 赛道热度综合判断，给出 [主流币/山寨/观望] 建议及理由（≤2句话）
+> - If Source D `.global` is null, skip this section entirely
 >
-> **Rules**: Never add metadata sections. Never fabricate. Use `price_change` field (not `price_change_24h`). Tokens with mention_count < 2 are silently omitted from main list.
+> **Language rule**: Detect the user's language from the conversation context and write the ENTIRE report in that language (all section headers, analysis text, notes, and warnings). If the user writes in Chinese, the full report must be in Chinese. If in English, full English. Never mix languages. The DCA section header may stay in Chinese as it is a fixed label.
+>
+> **Rules**: Never add metadata sections. Never fabricate. Use `price_change` field (not `price_change_24h`). Tokens with mention_count < 2 are silently omitted from main list. Never fabricate source names in Key News or Notable Alpha — use exact `source` field from API.
 
 > 🤖 **Automate this combo** — run every morning at 8am and deliver to Telegram:
 > ```bash
@@ -127,7 +149,7 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
 >   --cron "0 8 * * *" \
 >   --tz "Asia/Shanghai" \
 >   --session isolated \
->   --message "Run CT Monitor Combo 1: call /brief/generate?hours=24 (use .report field), /price/trending?hours=24, /signals/recent?hours=6&min_score=60. Synthesize into a Markdown morning report with 5 sections: (1) 📊 Market Overview — copy .report verbatim + append KOL Signal line from signals data; (2) 📰 Key News — copy ALL items from .report verbatim, add Impact assessment per item; (3) 🔥 Sector Pulse — table with heating/cooling/stable ratings; (4) 💡 Notable Alpha — copy ALL items from .report verbatim; (5) 📈 Trending Tokens — list only mention_count>=2 sorted by mention_count desc, format: [⚡]$SYMBOL — KOL: N mentions | 24h: X% | CG Rank: #N, mark ⚡ if also in signals, add warning line for cg_rank<=5 AND mention_count=0 tokens. Use price_change field (not price_change_24h). Never fabricate." \
+>   --message "Run CT Monitor Combo 1: call /brief/generate?hours=24 (use .report field), /price/trending?hours=24, /signals/recent?hours=6&min_score=60, /price/summary, /info/feed?limit=30 (filter score>=50 sorted by score desc). Synthesize into a Markdown morning report with 6 sections: (1) 📊 Market Overview — copy .report verbatim + append KOL Signal line from signals data; (2) 📰 Key News — use info/feed score>=50 as primary source, format [source] Title → Impact: assessment, cross-ref .report Key News; (3) 🔥 Sector Pulse — table with heating/cooling/stable ratings based on .report + info/feed sector news; (4) 💡 Notable Alpha — use info/feed score>=60 as primary source, format [source] Title → Alpha: insight, cross-ref .report Notable Alpha; (5) 📈 Trending Tokens — list only mention_count>=2 sorted by mention_count desc, mark ⚡ if in signals, add warning for cg_rank<=5 AND mention_count=0; (6) 🎯 DCA 参考信号 — BTC dominance from price/summary.global, DCA recommendation in ≤2 sentences. Use price_change field (not price_change_24h). Never fabricate source names." \
 >   --announce \
 >   --channel telegram
 > ```
@@ -329,42 +351,7 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=0.25" \
 
 ---
 
-### Combo 5: DCA Decision Support (Weekly review)
-
-> Weekly review — combine multi-dimensional data to decide next week's DCA strategy. Total cost ~5¢.
-
-**Step 1: Get latest market briefing**
-```bash
-curl -s "https://api.ctmon.xyz/api/brief/generate?hours=24" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.report'
-```
-
-**Step 2: Last 24H trending tokens (with real-time price)**
-```bash
-curl -s "https://api.ctmon.xyz/api/price/trending?hours=24" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
-  jq '.[] | {symbol, mention_count, price_usd, change_24h, price_source, top_kols}'
-```
-
-**Step 3: Major coin price overview (Binance-powered)**
-```bash
-curl -s "https://api.ctmon.xyz/api/price/summary" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
-  jq '{global: .global, prices: (.prices | to_entries | map({key: .key, price_usd: .value.price_usd, change_24h: .value.change_24h, source: .value.source}) | from_entries)}'
-```
-
-**Step 4: Recent signal summary**
-```bash
-curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
-```
-
-**Synthesis prompt**:
-> Above is weekly market data (AI briefing + trending tokens with real-time prices + Binance price overview + signals). Generate a weekly investment decision report: ① Market trend judgment (Bull/Bear/Sideways) ② Sectors to watch ③ Major coin allocation suggestions ④ Risk warnings ⑤ DCA strategy recommendations
-
----
-
-### Combo 6: Narrative Trend Tracker (What story is the market telling?)
+### Combo 5: Narrative Trend Tracker (What story is the market telling?)
 
 > Identify which narratives are heating up and which are cooling down. Total cost ~3¢.
 
@@ -400,14 +387,14 @@ curl -s "https://api.ctmon.xyz/api/price/trending?hours=24" \
 >   --cron "0 20 * * *" \
 >   --tz "Asia/Shanghai" \
 >   --session isolated \
->   --message "Run CT Monitor Combo 6: scan /tweets/feed for sector keywords (AI agent, RWA, DePIN, BTCFi, restaking, meme, GameFi), check /signals/recent?hours=24, check /price/trending?hours=24. Generate narrative heat ranking with early-stage vs. priced-in analysis." \
+>   --message "Run CT Monitor Combo 5: scan /tweets/feed for sector keywords (AI agent, RWA, DePIN, BTCFi, restaking, meme, GameFi), check /signals/recent?hours=24, check /price/trending?hours=24. Generate narrative heat ranking with early-stage vs. priced-in analysis." \
 >   --announce \
 >   --channel telegram
 > ```
 
 ---
 
-### Combo 7: Airdrop & Event Hunter (Never miss an opportunity)
+### Combo 6: Airdrop & Event Hunter (Never miss an opportunity)
 
 > Surface upcoming airdrops, TGEs, unlock events, and snapshot deadlines. Total cost ~2¢.
 
@@ -441,14 +428,14 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=24" \
 >   --cron "0 7 * * *" \
 >   --tz "Asia/Shanghai" \
 >   --session isolated \
->   --message "Run CT Monitor Combo 7: scan /tweets/feed for airdrop/snapshot/TGE/unlock/claim/whitelist/mint keywords, check /info/feed for event news, check /signals/recent?hours=24. Generate an event list sorted by urgency with participation value assessment and action checklist." \
+>   --message "Run CT Monitor Combo 6: scan /tweets/feed for airdrop/snapshot/TGE/unlock/claim/whitelist/mint keywords, check /info/feed for event news, check /signals/recent?hours=24. Generate an event list sorted by urgency with participation value assessment and action checklist." \
 >   --announce \
 >   --channel telegram
 > ```
 
 ---
 
-### Combo 8: Smart Money Tracker (Follow the whales)
+### Combo 7: Smart Money Tracker (Follow the whales)
 
 > Identify what the most influential KOLs are quietly positioning in. Total cost ~4¢.
 
@@ -486,14 +473,14 @@ done
 >   --cron "0 12 * * *" \
 >   --tz "Asia/Shanghai" \
 >   --session isolated \
->   --message "Run CT Monitor Combo 8: get /users/top?limit=20, then fetch real-time and historical tweets for the top 5 KOLs. Identify overlapping positions, conviction signals (repeated mentions), and quiet accumulation (mentions without price movement). Report only tokens mentioned by 2+ top KOLs." \
+>   --message "Run CT Monitor Combo 7: get /users/top?limit=20, then fetch real-time and historical tweets for the top 5 KOLs. Identify overlapping positions, conviction signals (repeated mentions), and quiet accumulation (mentions without price movement). Report only tokens mentioned by 2+ top KOLs." \
 >   --announce \
 >   --channel telegram
 > ```
 
 ---
 
-### Combo 9: Sector Rotation Detector (Where is the money flowing?)
+### Combo 8: Sector Rotation Detector (Where is the money flowing?)
 
 > Detect which sectors are gaining momentum and which are cooling down. Total cost ~3¢.
 
@@ -539,7 +526,7 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=50" \
 >   --cron "0 21 * * 0" \
 >   --tz "Asia/Shanghai" \
 >   --session isolated \
->   --message "Run CT Monitor Combo 9: compare /price/trending?hours=24 vs hours=168, compare /signals/recent?hours=6 vs hours=24, scan /info/feed for sector media attention. Generate weekly sector rotation matrix with heating/cooling/stable ratings and reallocation suggestions." \
+>   --message "Run CT Monitor Combo 8: compare /price/trending?hours=24 vs hours=168, compare /signals/recent?hours=6 vs hours=24, scan /info/feed for sector media attention. Generate weekly sector rotation matrix with heating/cooling/stable ratings and reallocation suggestions." \
 >   --announce \
 >   --channel telegram
 > ```
@@ -576,7 +563,7 @@ openclaw cron add \
   --cron "0 8 * * *" \
   --tz "Asia/Shanghai" \
   --session isolated \
-  --message "Run CT Monitor Combo 1: call /brief/generate?hours=24 (use .report field), /price/trending?hours=24, /signals/recent?hours=6&min_score=60. Synthesize into a Markdown morning report with 5 sections: (1) 📊 Market Overview — copy .report verbatim + append KOL Signal line from signals data; (2) 📰 Key News — copy ALL items from .report verbatim, add Impact assessment per item; (3) 🔥 Sector Pulse — table with heating/cooling/stable ratings; (4) 💡 Notable Alpha — copy ALL items from .report verbatim; (5) 📈 Trending Tokens — list only mention_count>=2 sorted by mention_count desc, format: [⚡]$SYMBOL — KOL: N mentions | 24h: X% | CG Rank: #N, mark ⚡ if also in signals, add warning line for cg_rank<=5 AND mention_count=0 tokens. Use price_change field (not price_change_24h). Never fabricate." \
+  --message "Run CT Monitor Combo 1: call /brief/generate?hours=24 (use .report field), /price/trending?hours=24, /signals/recent?hours=6&min_score=60, /price/summary, /info/feed?limit=30 (filter score>=50 sorted by score desc). Synthesize into a Markdown morning report with 6 sections: (1) 📊 Market Overview — copy .report verbatim + append KOL Signal line from signals data; (2) 📰 Key News — use info/feed score>=50 as primary source, format [source] Title → Impact: assessment, cross-ref .report Key News; (3) 🔥 Sector Pulse — table with heating/cooling/stable ratings based on .report + info/feed sector news; (4) 💡 Notable Alpha — use info/feed score>=60 as primary source, format [source] Title → Alpha: insight, cross-ref .report Notable Alpha; (5) 📈 Trending Tokens — list only mention_count>=2 sorted by mention_count desc, mark ⚡ if in signals, add warning for cg_rank<=5 AND mention_count=0; (6) 🎯 DCA 参考信号 — BTC dominance from price/summary.global, DCA recommendation in ≤2 sentences. Use price_change field (not price_change_24h). Never fabricate source names." \
   --announce \
   --channel telegram
 ```
@@ -592,61 +579,61 @@ openclaw cron add \
   --channel telegram
 ```
 
-**Combo 5 — Security watch (every 15 min, conditional)**:
+**Combo 4 — Security watch (every 15 min, conditional)**:
 ```bash
 openclaw cron add \
   --name "CT Security Watch" \
   --cron "*/15 * * * *" \
   --session isolated \
-  --message "Call CT Monitor /tweets/feed?limit=100 and filter for hack/exploit/rug/drain/emergency/pause/vulnerability. Also check /info/feed?limit=30 for security news. If 3+ KOLs mention the same security event, run the full Combo 5 analysis and send an URGENT alert. If nothing found, stay silent." \
+  --message "Call CT Monitor /tweets/feed?limit=100 and filter for hack/exploit/rug/drain/emergency/pause/vulnerability. Also check /info/feed?limit=30 for security news. If 3+ KOLs mention the same security event, run the full Combo 4 analysis and send an URGENT alert. If nothing found, stay silent." \
   --announce \
   --channel telegram
 ```
 
-**Combo 7 — Narrative pulse (daily 8pm)**:
+**Combo 5 — Narrative pulse (daily 8pm)**:
 ```bash
 openclaw cron add \
   --name "CT Narrative Pulse" \
   --cron "0 20 * * *" \
   --tz "Asia/Shanghai" \
   --session isolated \
-  --message "Run CT Monitor Combo 6: scan /tweets/feed for sector keywords (AI agent, RWA, DePIN, BTCFi, restaking, meme, GameFi), check /signals/recent?hours=24, check /price/trending?hours=24. Generate narrative heat ranking with early-stage vs. priced-in analysis." \
+  --message "Run CT Monitor Combo 5: scan /tweets/feed for sector keywords (AI agent, RWA, DePIN, BTCFi, restaking, meme, GameFi), check /signals/recent?hours=24, check /price/trending?hours=24. Generate narrative heat ranking with early-stage vs. priced-in analysis." \
   --announce \
   --channel telegram
 ```
 
-**Combo 8 — Airdrop hunter (daily 7am)**:
+**Combo 6 — Airdrop hunter (daily 7am)**:
 ```bash
 openclaw cron add \
   --name "CT Airdrop Hunter" \
   --cron "0 7 * * *" \
   --tz "Asia/Shanghai" \
   --session isolated \
-  --message "Run CT Monitor Combo 7: scan /tweets/feed for airdrop/snapshot/TGE/unlock/claim/whitelist/mint keywords, check /info/feed for event news, check /signals/recent?hours=24. Generate an event list sorted by urgency with participation value assessment and action checklist." \
+  --message "Run CT Monitor Combo 6: scan /tweets/feed for airdrop/snapshot/TGE/unlock/claim/whitelist/mint keywords, check /info/feed for event news, check /signals/recent?hours=24. Generate an event list sorted by urgency with participation value assessment and action checklist." \
   --announce \
   --channel telegram
 ```
 
-**Combo 9 — Whale watch (daily noon)**:
+**Combo 7 — Whale watch (daily noon)**:
 ```bash
 openclaw cron add \
   --name "CT Whale Watch" \
   --cron "0 12 * * *" \
   --tz "Asia/Shanghai" \
   --session isolated \
-  --message "Run CT Monitor Combo 8: get /users/top?limit=20, then fetch real-time and historical tweets for the top 5 KOLs. Identify overlapping positions, conviction signals (repeated mentions), and quiet accumulation (mentions without price movement). Report only tokens mentioned by 2+ top KOLs." \
+  --message "Run CT Monitor Combo 7: get /users/top?limit=20, then fetch real-time and historical tweets for the top 5 KOLs. Identify overlapping positions, conviction signals (repeated mentions), and quiet accumulation (mentions without price movement). Report only tokens mentioned by 2+ top KOLs." \
   --announce \
   --channel telegram
 ```
 
-**Combo 10 — Sector rotation (weekly Sunday 9pm)**:
+**Combo 8 — Sector rotation (weekly Sunday 9pm)**:
 ```bash
 openclaw cron add \
   --name "CT Sector Rotation" \
   --cron "0 21 * * 0" \
   --tz "Asia/Shanghai" \
   --session isolated \
-  --message "Run CT Monitor Combo 9: compare /price/trending?hours=24 vs hours=168, compare /signals/recent?hours=6 vs hours=24, scan /info/feed for sector media attention. Generate weekly sector rotation matrix with heating/cooling/stable ratings and reallocation suggestions." \
+  --message "Run CT Monitor Combo 8: compare /price/trending?hours=24 vs hours=168, compare /signals/recent?hours=6 vs hours=24, scan /info/feed for sector media attention. Generate weekly sector rotation matrix with heating/cooling/stable ratings and reallocation suggestions." \
   --announce \
   --channel telegram
 ```
