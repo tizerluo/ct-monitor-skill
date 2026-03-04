@@ -1,6 +1,6 @@
 # 📡 CT Monitor — Crypto Intelligence Analyst
 
-> Monitor 5000+ crypto KOL tweets, real-time news, RSS feeds & Binance prices. Extract Alpha signals, identify narratives, generate AI briefings with source attribution.
+> Monitor 5000+ crypto KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extract Alpha signals, identify narratives, generate AI briefings.
 
 [中文文档 ↓](#中文说明)
 
@@ -11,8 +11,8 @@
 CT Monitor is an OpenClaw Skill that connects to a continuously running backend service which:
 
 - **Monitors** 5000+ crypto KOL tweets (synced every 30 min ~ 24h, tiered by influence)
-- **Aggregates** AI-scored news + curated RSS feeds with automatic deduplication and source attribution
-- **Tracks** Binance real-time prices + BTC dominance + trending token analysis + KOL mention correlation
+- **Aggregates** AI-scored news + curated RSS feeds with automatic deduplication
+- **Tracks** CoinGecko real-time prices + trending token analysis + KOL mention correlation
 - **Extracts** Alpha signals weighted by KOL influence, identifying high-frequency token mentions
 - **Generates** AI briefings powered by Grok 4.1 Fast, integrating multi-source data
 
@@ -31,7 +31,7 @@ Once installed, ask OpenClaw in natural language — it automatically calls the 
 | 🚨 **Security Alert** | "Any recent hack or rug news?" |
 | 💰 **Price Query** | "What's BTC price? How much did it move in 24h?" |
 | 📈 **Trend Analysis** | "What tokens are trending? What are KOLs discussing?" |
-| 💎 **DCA Decision** | "What's BTC dominance today? Should I DCA alts?" |
+| 📅 **DCA Decision** | "Analyze this week's market, give me DCA suggestions" |
 
 ---
 
@@ -64,7 +64,7 @@ OpenClaw should return sync status and last update time.
 
 ## Power Combos
 
-CT Monitor's real value is in **combining multiple data sources**. Here are 8 scenarios that show how chaining APIs produces insights far beyond single queries.
+CT Monitor's real value is in **combining multiple data sources**. Here are 6 scenarios that show how chaining APIs produces insights far beyond single queries.
 
 ### 🌅 Combo 1: Morning Intelligence Brief (Daily)
 
@@ -75,10 +75,9 @@ CT Monitor's real value is in **combining multiple data sources**. Here are 8 sc
 1. Call `/brief/generate?hours=24` → AI comprehensive briefing
 2. Call `/price/trending?hours=24` → trending tokens + KOL mention analysis
 3. Call `/signals/recent?hours=6` → last 6h high-frequency signals
-4. Call `/price/summary` + `/info/feed?limit=30` → market overview + sourced news feed
-5. Synthesize all into a structured morning report
+4. Synthesize all three into a structured morning report
 
-**You get:** Overall market sentiment + Key News with source attribution (`[Reuters]`, `[CNN]`, etc.) + Sector pulse + Notable Alpha with sources + Tokens to watch + DCA reference signal (BTC dominance axis)
+**You get:** Overall market sentiment + Top 3 narratives today + Tokens to watch (with reasons) + Risk alerts
 
 💡 **Set up auto-delivery:** Schedule OpenClaw to send this to Telegram every morning at 8am
 
@@ -116,7 +115,23 @@ CT Monitor's real value is in **combining multiple data sources**. Here are 8 sc
 
 ---
 
-### 🚨 Combo 4: Security Alert Response (When risk appears)
+### 🏗️ Combo 4: Project Due Diligence (Quick comprehensive research)
+
+**You say:**
+> Quick research on Hyperliquid — community heat, KOL sentiment, price performance
+
+**OpenClaw will:**
+1. Call `/tweets/feed` filtered for Hyperliquid/HYPE → KOL opinion panorama
+2. Call `/info/feed?coin=HYPE` → related news and RSS
+3. Call `/price/token?symbol=HYPE` → price data
+4. Call `/signals/recent?hours=24` → last 24h signals
+5. Synthesize into a due diligence report
+
+**You get:** Community heat assessment + KOL sentiment distribution (Bullish/Bearish ratio) + Price performance analysis + Recent catalysts + Key risk factors
+
+---
+
+### 🚨 Combo 5: Security Alert Response (When risk appears)
 
 **You say:**
 > I heard a protocol got hacked — confirm it and assess the impact
@@ -134,7 +149,23 @@ CT Monitor's real value is in **combining multiple data sources**. Here are 8 sc
 
 ---
 
-### 🌊 Combo 5: Narrative Trend Tracker (What story is the market telling?)
+### 📅 Combo 6: DCA Decision Support (Weekly review)
+
+**You say:**
+> Weekly market review — give me DCA strategy for next week
+
+**OpenClaw will:**
+1. Call `/brief/generate?hours=24` → latest market briefing
+2. Call `/price/trending?hours=24` → last 24H trending tokens
+3. Call `/price/summary` → major coin price overview
+4. Call `/signals/recent?hours=6` → recent signal summary
+5. Synthesize into an investment decision report
+
+**You get:** Market trend judgment (Bull/Bear/Sideways) + Sectors to watch + Major coin allocation suggestions + Risk warnings + DCA strategy recommendations
+
+---
+
+### 🌊 Combo 7: Narrative Trend Tracker (What story is the market telling?)
 
 **You say:**
 > What narratives are hot right now? Which sectors are gaining momentum?
@@ -151,7 +182,7 @@ CT Monitor's real value is in **combining multiple data sources**. Here are 8 sc
 
 ---
 
-### 🪂 Combo 6: Airdrop & Event Hunter (Never miss an opportunity)
+### 🪂 Combo 8: Airdrop & Event Hunter (Never miss an opportunity)
 
 **You say:**
 > Any upcoming airdrops, TGEs, or unlock events worth paying attention to?
@@ -168,7 +199,7 @@ CT Monitor's real value is in **combining multiple data sources**. Here are 8 sc
 
 ---
 
-### 🐋 Combo 7: Smart Money Tracker (Follow the whales)
+### 🐋 Combo 9: Smart Money Tracker (Follow the whales)
 
 **You say:**
 > What are the most influential KOLs quietly positioning in lately?
@@ -185,7 +216,7 @@ CT Monitor's real value is in **combining multiple data sources**. Here are 8 sc
 
 ---
 
-### 🔄 Combo 8: Sector Rotation Detector (Where is the money flowing?)
+### 🔄 Combo 10: Sector Rotation Detector (Where is the money flowing?)
 
 **You say:**
 > Which sectors are gaining momentum and which are cooling down? Where should I rotate?
@@ -213,7 +244,7 @@ openclaw cron add \
   --cron "0 8 * * *" \
   --tz "Asia/Shanghai" \
   --session isolated \
-  --message "Run CT Monitor Combo 1: call /brief/generate?hours=24, /price/trending?hours=24, /signals/recent?hours=6, /price/summary, /info/feed?limit=30 (score>=50). Synthesize into a morning report: market overview, key news with [source] attribution, sector pulse, notable alpha with [source], trending tokens, DCA reference signal (BTC dominance)." \
+  --message "Run CT Monitor Combo 1: call /brief/generate?hours=24, /price/trending?hours=24, /signals/recent?hours=6. Synthesize into a structured morning report: market sentiment, top 3 narratives, tokens to watch, risk alerts." \
   --announce \
   --channel telegram
 ```
@@ -229,25 +260,25 @@ openclaw cron add \
   --channel telegram
 ```
 
-**Combo 4 — Security watch (every 15 min, fires only on confirmed events):**
+**Combo 5 — Security watch (every 15 min, fires only on confirmed events):**
 ```bash
 openclaw cron add \
   --name "CT Security Watch" \
   --cron "*/15 * * * *" \
   --session isolated \
-  --message "Check CT Monitor for hack/exploit/rug mentions in /tweets/feed and /info/feed. If 3+ KOLs mention the same security event, run Combo 4 analysis and send an URGENT alert. If nothing found, stay silent." \
+  --message "Check CT Monitor for hack/exploit/rug mentions in /tweets/feed and /info/feed. If 3+ KOLs mention the same security event, run Combo 5 analysis and send an URGENT alert. If nothing found, stay silent." \
   --announce \
   --channel telegram
 ```
 
-**Combo 8 — Weekly sector rotation (Sunday 9pm):**
+**Combo 10 — Weekly sector rotation (Sunday 9pm):**
 ```bash
 openclaw cron add \
   --name "CT Sector Rotation" \
   --cron "0 21 * * 0" \
   --tz "Asia/Shanghai" \
   --session isolated \
-  --message "Run CT Monitor Combo 8: compare trending data 24h vs 7d, signal acceleration 6h vs 24h, media attention by sector. Generate weekly sector rotation matrix with reallocation suggestions." \
+  --message "Run CT Monitor Combo 10: compare trending data 24h vs 7d, signal acceleration 6h vs 24h, media attention by sector. Generate weekly sector rotation matrix with reallocation suggestions." \
   --announce \
   --channel telegram
 ```
@@ -277,14 +308,14 @@ CT Monitor charges per API call, deducted from your account balance:
 | `/twitter/realtime` | 2¢ | Real-time tweets (6551 source) |
 | `/price/token` | 1¢ | Token price query — 3-level fallback (CoinGecko→Binance→DexScreener); response includes `source`, `chain`, `dex`, `pair_address` fields |
 | `/price/trending` | 1¢ | Trending token analysis |
-| `/price/summary` | 1¢ | Market overview (Binance prices + BTC dominance) |
-| `/info/feed` | 1¢ | Unified news + RSS feed with source attribution |
+| `/price/summary` | 1¢ | Market overview |
+| `/info/feed` | 1¢ | Unified news + RSS feed |
 | `/tweets/feed` `/tweets/recent` `/tweets/search` | Free | Historical database queries |
 
 **Typical scenario costs:**
-- Morning intelligence brief: ~5¢/run
+- Morning intelligence brief: ~4¢/run
 - Alpha signal deep dive: ~6¢/run
-- Daily scheduled delivery: ~$1.5/month
+- Daily scheduled delivery: ~$1.2/month
 
 ---
 
@@ -302,9 +333,6 @@ A: If `[]` is returned, there's usually no data in that time window. Try expandi
 **Q: What languages are supported?**
 A: The API returns raw data (primarily English tweets). AI analysis and synthesis output supports both English and Chinese.
 
-**Q: Where does the news source attribution come from?**
-A: The `/info/feed` endpoint returns a `source` field for each news item (e.g. "Reuters", "CNN", "PRNewswire"). Combo 1 uses this to display `[source]` labels in Key News and Notable Alpha sections.
-
 ---
 
 ## Links
@@ -319,7 +347,7 @@ A: The `/info/feed` endpoint returns a `source` field for each news item (e.g. "
 
 ## 中文说明
 
-CT Monitor 是一个专为加密市场设计的 OpenClaw Skill，整合 5000+ KOL 推文、实时新闻、RSS、Binance 价格数据，提取 Alpha 信号、识别新兴叙事、生成带出处标注的 AI 简报。
+CT Monitor 是一个专为加密市场设计的 OpenClaw Skill，整合 5000+ KOL 推文、实时新闻、RSS、CoinGecko 价格数据，提取 Alpha 信号、识别新兴叙事、生成 AI 简报。
 
 ### 快速上手
 
@@ -327,17 +355,15 @@ CT Monitor 是一个专为加密市场设计的 OpenClaw Skill，整合 5000+ KO
 2. 在 OpenClaw 中执行 `/skill install openclaw-twitter-monitor`
 3. 配置 `CT_MONITOR_API_KEY` 环境变量
 
-### 8 大组合拳场景
+### 6 大组合拳场景
 
 | 场景 | 示例问题 |
 | :--- | :--- |
 | 🌅 早间情报简报 | "给我一份今天的加密市场早报" |
 | 🎯 Alpha 信号深挖 | "最近 1 小时有什么 Alpha 信号？" |
 | 👤 KOL 深度画像 | "帮我深度分析一下 @cobie" |
+| 🏗️ 项目尽调 | "帮我快速调查一下 Hyperliquid" |
 | 🚨 安全预警响应 | "有没有最新的 Hack 或 Rug 消息？" |
-| 🌊 叙事趋势追踪 | "现在哪些赛道最热？哪些在降温？" |
-| 🪂 空投事件猎手 | "有没有近期值得参与的空投或 TGE？" |
-| 🐋 聪明钱追踪 | "最有影响力的 KOL 最近在悄悄布局什么？" |
-| 🔄 赛道轮动探测 | "资金在往哪个赛道流？我该怎么轮动？" |
+| 📅 定投决策辅助 | "帮我做本周市场复盘，给出定投建议" |
 
 详细使用说明请参考上方英文文档。

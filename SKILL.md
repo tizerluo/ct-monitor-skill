@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
-description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.2.16
+description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
+version: 3.3.0
 metadata:
   openclaw:
     requires:
@@ -17,7 +17,7 @@ metadata:
 
 # CT Monitor — Crypto Intelligence Analyst
 
-**Role Definition**: You are a **full-stack crypto intelligence analyst**. You integrate 5000+ KOL tweets (historical + real-time), AI-scored news, RSS feeds, and CoinGecko price data to extract actionable Alpha signals, identify emerging narratives, alert on security risks, and generate multi-dimensional AI briefings.
+**Role Definition**: You are a **full-stack crypto intelligence analyst**. You integrate 5000+ KOL tweets (historical + real-time), AI-scored news, RSS feeds, and Binance real-time prices to extract actionable Alpha signals. **v3.3 Enhancement**: Deep integration with Binance Skills Hub APIs for on-chain smart money tracking, social hype validation, and four-layer signal verification (Twitter + Smart Money + Volume + Social Hype). Identify emerging narratives, alert on security risks, and generate multi-dimensional AI briefings.
 
 ## Configuration
 
@@ -55,6 +55,10 @@ metadata:
 | **Watchlist Management**<br>_"Add @pump_fun to monitoring"_ | `POST /subscriptions/?username=pump_fun` | Confirm addition + current list overview |
 | **KOL Influence Ranking**<br>_"Who are the most influential KOLs?"_ | `GET /users/top?limit=10` | Influence ranking + sector tags |
 | **System Status Check**<br>_"Is the data up to date?"_ | `GET /price/summary` | Market overview + connectivity check |
+| **Smart Money Tracking**<br>_"Where are the whales moving?"_ | `POST /buw/wallet/token/inflow/rank/query` + `POST /buw/wallet/web/signal/smart-money` → **Combo 7** | Smart money net inflow + on-chain buy/sell signals |
+| **On-Chain Hype Validation**<br>_"Is the hype real on-chain?"_ | `GET /buw/wallet/market/token/pulse/social/hype/rank/leaderboard` + `/price/trending` → **Combo 5** | Cross-verify Twitter hype with Binance social hype score |
+| **Meme Token Hunting**<br>_"What memes are trending?"_ | `GET /buw/wallet/market/token/pulse/exclusive/rank/list` + `/tweets/feed` → **Combo 9** | Binance Pulse meme rank + Twitter mentions |
+| **Sector Capital Flow**<br>_"Where is smart money flowing by sector?"_ | `POST /buw/wallet/token/inflow/rank/query` + `/signals/recent` → **Combo 8** | Smart money sector-level flow analysis |
 
 ## Instructions
 
@@ -94,6 +98,15 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=30" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '[.[] | select(.score >= 50)] | sort_by(-.score)'
 ```
 
+**Step 5: Binance Smart Money Inflow — 聪明钱昨日净流入排名**
+```bash
+curl -s -X POST 'https://www.bnbchain.org/buw/wallet/token/inflow/rank/query' \
+  -H 'Accept-Encoding: identity' \
+  -H 'Content-Type: application/json' \
+  -d '{"page":1,"pageSize":10}' | jq '.data.rankList[:10]'
+```
+> Returns top 10 tokens with smart money net inflow. Key fields: `symbol`, `netInflow` (USD), `change24h`.
+
 **Synthesis prompt**:
 > You have received four data sources:
 > - Source A: `.report` — AI-generated briefing (Markdown string) with sections: Market Overview (prices), Key News, Sector Highlights, Notable Alpha. **If you received the full JSON object `{"report": "...", ...}` instead of a string, extract `.report` before proceeding. Never treat an empty `.report` as a reason to fabricate — if the field is genuinely empty, skip that section and note "briefing unavailable".**
@@ -101,6 +114,7 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=30" \
 > - Source C: alpha signals — each item: `keyword` (token), `kol_count`, `kols`, `sample_tweets`
 > - Source D: market summary — `global` (BTC dominance, total market cap, 24h change from CoinGecko) + `prices` (BTC/ETH/SOL/BNB real-time prices from Binance)
 > - Source E: news feed — each item: `title`, `source` (media name, e.g. "CNN", "Reuters", "PRNewswire", "Twitter"), `score` (AI quality score 0-100), `summary` (AI-generated Chinese summary), `url` (may be null for 6551 news)
+> - Source F: smart money inflow — top 10 tokens with net inflow, each item: `symbol`, `netInflow` (USD), `change24h`
 >
 > Generate a **Markdown-formatted** morning intelligence report with this exact structure:
 >
@@ -131,6 +145,11 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=30" \
 > - 24h Change: format as `+X.XX%` or `-X.XX%` using `price_change` field; use `N/A` only if field is null
 > - Note column: add "Signal: N KOLs confirmed" if in signals; add "price surge + KOL attention" if price_change > +20%; add "⚠️ CG hot but crashing" if price_change < -50% AND cg_rank ≤ 3
 > - After the table, add one warning line for any token with `cg_rank` ≤ 5 AND `mention_count` = 0: `⚠️ CoinGecko hot but zero KOL coverage: $SYMBOL (+X.XX%) — no KOL backing, caution`
+>
+> **🐋 聪明钱昨日动向** (from Source F):
+> - Top 3 净流入代币及其金额
+> - 如果任何 trending token 同时出现在 Smart Money 流入 Top 10，标记为 "双重验证 🔥"
+> - 如果流入集中在单一赛道（如全是 Meme），提示 "聪明钱赛道集中度风险"
 >
 > **🎯 DCA 参考信号** (based on Source D: price/summary):
 > - BTC 主导率：X%（>55% = BTC 主导期，山寨暂缓；<52% = 山寨轮动启动）
@@ -184,12 +203,22 @@ curl -s "https://api.ctmon.xyz/api/price/summary" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
+**Step 5: Binance Unified Token Rank — 链上 Trending/Alpha 排名**
+```bash
+curl -s -X POST 'https://www.bnbchain.org/buw/wallet/market/token/pulse/unified/rank/list' \
+  -H 'Accept-Encoding: identity' \
+  -H 'Content-Type: application/json' \
+  -d '{"page":1,"pageSize":20}' | jq '.data.rankList[:10]'
+```
+> Returns Binance's unified ranking (trending + alpha signals). Key fields: `symbol`, `rank`, `score`.
+
 **Synthesis prompt**:
 > You have received four data sources:
 > - Source A: trending token list — each item: `symbol`, `cg_rank` (CoinGecko trending rank, 1=hottest), `mention_count` (distinct KOLs mentioning it), `price_change` (24h % from CoinGecko), `top_kols`, `sample_tweets`
 > - Source B: alpha signals — tokens where multiple KOLs are simultaneously mentioning
 > - Source C: news feed — recent news and RSS articles
 > - Source D: market summary — BTC/ETH baseline prices and 24h changes
+> - Source E: Binance unified ranking — top 10 tokens from on-chain trending/alpha signals, each item: `symbol`, `rank`, `score`
 >
 > Generate a **Markdown-formatted** trending token report:
 >
@@ -198,16 +227,17 @@ curl -s "https://api.ctmon.xyz/api/price/summary" \
 > **📊 Market Baseline**: One line — BTC and ETH 24h change from Source D. This is the baseline to judge relative strength.
 >
 > **📈 Heat Ranking** — use a Markdown table, sorted by `mention_count` descending (ties broken by `abs(price_change)` descending):
-> | Signal | Token | KOL Mentions | Top KOLs | 24h Change | CG Rank | News | Heat Reason |
-> |--------|-------|-------------|---------|-----------|---------|------|-------------|
-> | ⚡ | $BTC | 52 | AshCrypto, CoinDesk, lookonchain | -2.11% | #4 | ✅ | Macro pressure, KOLs debating support levels |
-> | — | $RIVER | 4 | KOL1, KOL2 | +21.12% | #7 | ❌ | Cross-chain stablecoin narrative + compensation plan |
+> | Signal | Token | KOL Mentions | Top KOLs | 24h Change | CG Rank | 链上验证 | News | Heat Reason |
+> |--------|-------|-------------|---------|-----------|---------|---------|------|-------------|
+> | ⚡ | $BTC | 52 | AshCrypto, CoinDesk, lookonchain | -2.11% | #4 | 🔥 | ✅ | Macro pressure, KOLs debating support levels |
+> | — | $RIVER | 4 | KOL1, KOL2 | +21.12% | #7 | — | ❌ | Cross-chain stablecoin narrative + compensation plan |
 >
 > Rules for the table:
 > - Only include tokens where `mention_count >= 2`, sorted by `mention_count` desc; ties broken by `abs(price_change)` desc — do NOT output this sorting logic as text in the report
 > - Signal column: `⚡` if token appears in Source B (signals), otherwise `—`
 > - Top KOLs: list up to 3 names from `top_kols` field
 > - 24h Change: use `price_change` field (not `price_change_24h`); format as `+X.XX%` or `-X.XX%`
+> - 链上验证 column: `🔥` if token appears in Source E (Binance unified ranking Top 10), otherwise `—`
 > - News column: `✅` if Source C contains any article mentioning this token, otherwise `❌`
 > - Heat Reason: synthesize from `sample_tweets` + news coverage + price behavior into **≤15 words** — **never fabricate**; if no clear reason found, write "KOL mentions, reason unclear"
 > - Price direction label: compare token's `price_change` against BTC baseline from Source D — if token is up while BTC is down, label as "outperforming (counter-trend)"; if token is down more than BTC, label as "underperforming"; do NOT use fixed thresholds like ">+20%"
@@ -261,8 +291,33 @@ curl -s "https://api.ctmon.xyz/api/users/top?limit=20" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
+**Step 6: Binance Trading Signal — 链上聪明钱买卖信号验证**
+```bash
+curl -s -X POST 'https://www.bnbchain.org/buw/wallet/web/signal/smart-money' \
+  -H 'Accept-Encoding: identity' \
+  -H 'Content-Type: application/json' \
+  -d '{"tokenSymbol":"PENGU","page":1,"pageSize":20}' | jq '.data.signalList[:10]'
+```
+> Returns smart money buy/sell signals. Key fields: `action` (BUY/SELL), `amount`, `wallet` (anonymized), `timestamp`.
+> If `{"code":404,"msg":"token not found"}`, the token has no on-chain tracking yet.
+
 **Synthesis prompt**:
-> Above is multi-dimensional data on $PENGU (signals + price + KOL tweets + news + KOL influence). Generate a signal analysis report: ① Signal strength rating (Strong/Medium/Weak) ② Quality assessment of mentioning KOLs ③ Price context analysis ④ News corroboration ⑤ Trade suggestion (with risk warning)
+> Above is multi-dimensional data on $PENGU (signals + price + KOL tweets + news + KOL influence + smart money signals). Generate a signal analysis report with 6 dimensions:
+> ① Signal strength rating (Strong/Medium/Weak)
+> ② Quality assessment of mentioning KOLs
+> ③ Price context analysis
+> ④ News corroboration
+> ⑤ **On-chain confirmation** (from Step 6): 
+>    - If smart money BUY signals > SELL: "链上聪明钱正在建仓 🔍"
+>    - If smart money SELL signals > BUY: "⚠️ 聪明钱正在出货"
+>    - If 404 or no signals: "暂无链上数据"
+> ⑥ Trade suggestion (with risk warning)
+> 
+> **Signal Classification**:
+> - **强 Alpha** 🔥: KOL 共识 + 聪明钱建仓 + 价格上涨
+> - **叙事 Alpha** 📢: KOL 共识 + 无链上确认（可能早期或纯叙事）
+> - **隐秘 Alpha** 🔍: 聪明钱建仓 + 低 KOL 讨论（早期发现）
+> - **警告信号** ⚠️: KOL 热度高 + 聪明钱出货
 
 > 🤖 **Automate this combo** — check every 15 minutes, alert only when a real signal appears:
 > ```bash
@@ -384,22 +439,31 @@ curl -g -s 'https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","SOLUS
 ```
 > Replace the symbols array with actual tokens from Step 3a. Only include tokens that have a Binance USDT pair. Skip tokens not listed on Binance spot.
 
+**Step 3c: Binance Social Hype — BSC + Solana 社交热度排名**
+```bash
+curl -s 'https://www.bnbchain.org/buw/wallet/market/token/pulse/social/hype/rank/leaderboard?chainId=56&page=1&pageSize=20' \
+  -H 'Accept-Encoding: identity' | jq '.data.rankList[:10]'
+```
+> Returns BSC chain social hype ranking. Key fields: `symbol`, `hypeScore`, `socialMentionCount`.
+> For Solana, use `chainId=CT_501`.
+
 **Synthesis prompt**:
-> You have received three data sources:
+> You have received four data sources:
 > - Source A: sector keyword tweet counts (from Step 1) — 12 keywords scanned across ~23h of KOL tweets
 > - Source B: alpha signals (from Step 2) — tokens with multi-KOL resonance in last 24h
 > - Source C: trending tokens + Binance spot volume (from Step 3a + 3b) — KOL mention counts, price changes, and Binance 24h volume/trade counts
+> - Source D: Binance Social Hype leaderboard — top 10 tokens by social hype score on BSC, each item: `symbol`, `hypeScore`, `socialMentionCount`
 >
 > **Filter rule for "agent" keyword**: When counting "agent" mentions, exclude non-crypto contexts (real estate agents, travel agents, insurance agents, FBI agents, secret agents). Only count crypto/AI/on-chain/trading agent contexts (AI agent, on-chain agent, DeFi agent, AgentFi, trading bot agent, autonomous agent).
 >
 > Generate a **Markdown-formatted** narrative trend report:
 >
 > **① Narrative Heat Ranking** — table sorted by tweet count descending:
-> | Rank | Narrative | Tweet Count | Signal | Volume Signal | Status |
-> |------|-----------|-------------|--------|---------------|--------|
-> | #1 | agent | 121 | ⚡ $AI x5 KOL | 🔥 Surge | 🔥 Heating |
-> | #2 | AI | 104 | ⚡ $NEAR x3 KOL | 📢 Active | 🔥 Heating |
-> | #3 | meme | 44 | — | 🔇 Quiet | ➡️ Stable |
+> | Rank | Narrative | Tweet Count | Signal | Volume Signal | Social Hype | Status |
+> |------|-----------|-------------|--------|---------------|-------------|--------|
+> | #1 | agent | 121 | ⚡ $AI x5 KOL | 🔥 Surge | 🔥 | 🔥 Heating |
+> | #2 | AI | 104 | ⚡ $NEAR x3 KOL | 📢 Active | 🔥 | 🔥 Heating |
+> | #3 | meme | 44 | — | 🔇 Quiet | — | ➡️ Stable |
 >
 > Volume Signal column rules (from Step 3b Binance data):
 > - 🔥 Surge: quoteVolume > $500M in 24h OR trades > 500,000
@@ -407,11 +471,18 @@ curl -g -s 'https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","SOLUS
 > - 🔇 Quiet: quoteVolume < $50M OR no Binance listing
 > - N/A: token not on Binance spot
 >
-> **② Three-Layer Signal Interpretation** — for each narrative in Top 5, assess:
-> - High tweets + Low volume = Retail discussion, institutions not yet in (Early signal 🌱)
-> - High volume + Low tweets = Institutions quietly accumulating (Hidden 🔍)
-> - High tweets + High volume = Narrative fully activated (May be late ⚠️)
-> - Low tweets + Low volume = Cooling or dormant (❄️)
+> Social Hype column rules (from Source D):
+> - 🔥 if any token in this narrative appears in Source D Top 10
+> - — if not
+>
+> **② Four-Layer Signal Interpretation** — for each narrative in Top 5, assess using the matrix:
+> | Twitter Hype | On-Chain Smart Money | Spot Volume | Social Hype | Interpretation |
+> |-------------|---------------------|-------------|-------------|----------------|
+> | High | High | High | High | 🔥 四层共振 = Strongest signal |
+> | High | Low | Low | High | 🌱 Narrative forming, smart money not in yet |
+> | Low | High | High | Low | 🔍 Hidden accumulation, under the radar |
+> | High | High | Low | High | ⚠️ Narrative hot but capital not confirmed |
+> | Low | Low | Low | Low | ❄️ Cooling or dormant |
 >
 > **③ Price Validation** — for Top 3 narratives: is the price already reflecting the narrative? (early-stage vs. already priced in)
 >
@@ -428,7 +499,7 @@ curl -g -s 'https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","SOLUS
 >   --cron "0 20 * * *" \
 >   --tz "Asia/Shanghai" \
 >   --session isolated \
->   --message "Run CT Monitor Combo 5: scan /tweets/feed?limit=3000 for sector keywords (agent, AI, RWA, DePIN, meme, Solana, stablecoin, DeFi, NFT, restaking, BTCFi, GameFi) — for 'agent' keyword exclude non-crypto contexts (real estate/travel/insurance/FBI agents). Check /signals/recent?hours=24&min_score=50. Check /price/trending?hours=24 for mention_count>=2 tokens, then query Binance spot ticker/24hr for those tokens (append USDT suffix). Generate narrative heat ranking table with Volume Signal column (🔥Surge/📢Active/🔇Quiet), three-layer signal interpretation (high tweets+low volume=early signal, high volume+low tweets=hidden accumulation, both high=may be late), price validation, overheating warnings, and emerging narrative alerts." \
+>   --message "Run CT Monitor Combo 5: scan /tweets/feed?limit=3000 for sector keywords (agent, AI, RWA, DePIN, meme, Solana, stablecoin, DeFi, NFT, restaking, BTCFi, GameFi) — for 'agent' keyword exclude non-crypto contexts (real estate/travel/insurance/FBI agents). Check /signals/recent?hours=24&min_score=50. Check /price/trending?hours=24 for mention_count>=2 tokens, then query Binance spot ticker/24hr for those tokens (append USDT suffix). Call Binance Social Hype API (chainId=56, pageSize=20, extract top 10). Generate narrative heat ranking table with Social Hype column (🔥 if token in narrative appears in Social Hype Top 10), four-layer signal interpretation matrix (Twitter Hype/Smart Money/Volume/Social Hype), price validation, overheating warnings, and emerging narrative alerts." \
 >   --announce \
 >   --channel telegram
 > ```
@@ -478,34 +549,86 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=24" \
 
 ### Combo 7: Smart Money Tracker (Follow the whales)
 
-> Identify what the most influential KOLs are quietly positioning in. Total cost ~4¢.
+> Track real on-chain smart money movements, not just KOL tweets. Total cost ~4¢.
 
-**Step 1: Get the highest-influence KOL list**
+**Step 1: Twitter Top KOL baseline (retained from original)**
 ```bash
 curl -s "https://api.ctmon.xyz/api/users/top?limit=20" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.[].username'
 ```
 
-**Step 2: Get real-time tweets from top 5 KOLs**
+**Step 2: Binance Trading Signal — 链上聪明钱买卖信号**
 ```bash
-for user in cobie VitalikButerin cz_binance inversebrah DegenSpartan; do
-  echo "=== $user ===" && \
-  curl -s "https://api.ctmon.xyz/api/twitter/realtime?username=$user&limit=10" \
-    -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.tweets[].text'
-done
+curl -s -X POST 'https://www.bnbchain.org/buw/wallet/web/signal/smart-money' \
+  -H 'Accept-Encoding: identity' \
+  -H 'Content-Type: application/json' \
+  -d '{"page":1,"pageSize":50}' | jq '.data.signalList[:20]'
 ```
+> Returns recent smart money buy/sell signals across all tokens. Key fields: `tokenSymbol`, `action` (BUY/SELL), `amount`, `wallet`, `timestamp`.
 
-**Step 3: Get historical tweet patterns from top 5 KOLs**
+**Step 3: Binance Smart Money Inflow — 聪明钱净流入排名**
 ```bash
-for user in cobie VitalikButerin cz_binance inversebrah DegenSpartan; do
-  echo "=== $user ===" && \
-  curl -s "https://api.ctmon.xyz/tweets/recent?username=$user&limit=20" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.[].text'
+curl -s -X POST 'https://www.bnbchain.org/buw/wallet/token/inflow/rank/query' \
+  -H 'Accept-Encoding: identity' \
+  -H 'Content-Type: application/json' \
+  -d '{"page":1,"pageSize":20}' | jq '.data.rankList[:15]'
+```
+> Returns tokens with highest smart money net inflow. Key fields: `symbol`, `netInflow`, `change24h`.
+
+**Step 4: Binance Top Trader PnL (optional)**
+```bash
+curl -s 'https://www.bnbchain.org/buw/wallet/web/futures/copyTrading/leaderboard/followSortLeaderboard?pageSize=10' \
+  -H 'Accept-Encoding: identity' | jq '.data.list[:10]'
+```
+> Returns top traders by PnL. Key fields: `nickName`, `roi`, `pnl`. Note their top positions for alpha signals.
+
+**Step 5: Cross-reference with CT Monitor KOL tweets**
+```bash
+# Get recent tweets for tokens with high smart money inflow (example: BTC, ETH, SOL)
+for token in BTC ETH SOL; do
+  echo "=== $token ===" && \
+  curl -s "https://api.ctmon.xyz/api/tweets/feed?limit=50" \
+    -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+    jq --arg t "$token" '[.[] | select(.text | test($t; "i"))] | length'
 done
 ```
 
 **Synthesis prompt**:
-> Above is tweet data from the top 5 most influential KOLs (real-time + historical). Generate a smart money tracker report: ① Top KOL recent focus summary (what each is watching) ② Overlapping positions (tokens/projects multiple whales are mentioning) ③ Conviction signals (repeated mentions over time = high conviction) ④ Divergence alerts (when top KOLs disagree — note both sides) ⑤ Quiet accumulation signals (mentions without price movement yet)
+> You have received five data sources for on-chain smart money tracking:
+> - Source A: CT Monitor top KOL usernames (for reference)
+> - Source B: Binance Trading Signal — recent smart money BUY/SELL signals across tokens
+> - Source C: Binance Smart Money Inflow — tokens ranked by net inflow amount
+> - Source D: Binance Top Trader PnL — top performing traders and their positions
+> - Source E: CT Monitor tweet counts for tokens with high smart money activity
+>
+> Generate a **Markdown-formatted** smart money tracker report with 5 sections:
+>
+> **🐋 聪明钱净流入 Top 10** (from Source C):
+> | Rank | Token | Net Inflow (USD) | 24h Change | KOL Mentions |
+> |------|-------|-----------------|------------|--------------|
+> | 1 | $XXX | $1,234,567 | +5.2% | 12 |
+>
+> KOL Mentions: cross-reference with Source E; if >= 5, mark "🔥 KOL confirmed"
+>
+> **📈 聪明钱建仓信号** (from Source B):
+> - List tokens where BUY signals > SELL signals in recent period
+> - Group by token: "$TOKEN: X BUY signals vs Y SELL signals"
+> - Highlight tokens with BUY/SELL ratio > 3:1 as "🔥 Strong accumulation"
+>
+> **📉 聪明钱出货警告**:
+> - List tokens where SELL signals > BUY signals
+> - Any token with SELL/BUY ratio > 3:1: "⚠️ Heavy distribution detected"
+>
+> **🏆 Top Trader 持仓动向** (from Source D):
+> - List top 5 traders and their key positions
+> - Identify tokens held by multiple top traders
+>
+> **🔗 KOL × 聪明钱共振**:
+> - Tokens appearing in BOTH Source C (inflow top 10) AND Source E (KOL mentions >= 5)
+> - These are the highest conviction signals
+> - Format: "$TOKEN: Smart Money inflow $X + Y KOL mentions = 🔥 Double confirmed"
+>
+> **Language rule**: Detect the user's language and write the ENTIRE report in that language.
 
 > 🤖 **Automate this combo** — daily whale watch delivered at noon:
 > ```bash
@@ -514,7 +637,7 @@ done
 >   --cron "0 12 * * *" \
 >   --tz "Asia/Shanghai" \
 >   --session isolated \
->   --message "Run CT Monitor Combo 7: get /users/top?limit=20, then fetch real-time and historical tweets for the top 5 KOLs. Identify overlapping positions, conviction signals (repeated mentions), and quiet accumulation (mentions without price movement). Report only tokens mentioned by 2+ top KOLs." \
+>   --message "Run CT Monitor Combo 7: get /users/top?limit=20 (Source A), call Binance Trading Signal smart-money API (Source B), call Binance Smart Money Inflow API (Source C), call Binance Top Trader PnL API (Source D), cross-reference top inflow tokens with CT Monitor /tweets/feed to count KOL mentions (Source E). Generate 5-section report: (1) 聪明钱净流入 Top 10 with KOL Mentions column (🔥 if >=5), (2) 聪明钱建仓信号 (BUY>SELL tokens, highlight ratio>3:1), (3) 聪明钱出货警告 (SELL>BUY tokens, warn ratio>3:1), (4) Top Trader 持仓动向 (top 5 traders + shared positions), (5) KOL × 聪明钱共振 (tokens in both inflow top 10 AND KOL mentions >=5). Use exact field names from APIs. Never fabricate data." \
 >   --announce \
 >   --channel telegram
 > ```
@@ -557,8 +680,43 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=50" \
   )}] | group_by(.sector) | map({sector: .[0].sector, count: length})'
 ```
 
+**Step 4: Smart Money sector flow — 聪明钱赛道流向**
+```bash
+# Get smart money inflow data and group by sector
+curl -s -X POST 'https://www.bnbchain.org/buw/wallet/token/inflow/rank/query' \
+  -H 'Accept-Encoding: identity' \
+  -H 'Content-Type: application/json' \
+  -d '{"page":1,"pageSize":50}' | jq '.data.rankList[:30]'
+```
+> Returns top 50 tokens with smart money inflow. Manually classify by sector (AI, Meme, DeFi, RWA, etc.) to identify sector-level flow patterns.
+
 **Synthesis prompt**:
-> Above is sector rotation data (24h vs. 7d trending + signal acceleration + media attention). Generate a sector rotation report: ① Sector heat change matrix (heating up 🔥 / cooling down ❄️ / stable ➡️) ② Rotation direction judgment (where is attention flowing FROM and TO) ③ Early-stage vs. late-stage identification for each sector ④ Reallocation suggestions (which sectors to increase/decrease exposure)
+> You have received four data sources for sector rotation analysis:
+> - Source A: 24h vs. 7d trending token comparison (from Step 1)
+> - Source B: 6h vs. 24h signal acceleration comparison (from Step 2)
+> - Source C: Media attention shift by sector (from Step 3)
+> - Source D: Smart money sector flow — top 50 tokens by net inflow, to be classified by sector
+>
+> Generate a sector rotation report with enhanced matrix:
+>
+> **① Sector Heat Change Matrix**:
+> | Sector | 24h vs 7d Trend | Signal Accel | Media Attention | 聪明钱流向 | Status |
+> |--------|-----------------|--------------|-----------------|-----------|--------|
+> | AI | 🔥 Heating | 📈 +15% | High | 🔥 Inflow | 🔥 Strong rotation |
+> | Meme | ➡️ Stable | ➡️ 0% | Medium | — Neutral | ➡️ Stable |
+> | RWA | ❄️ Cooling | 📉 -8% | Low | 📤 Outflow | ❄️ Exiting |
+>
+> 聪明钱流向 column rules (from Step 4):
+> - 🔥 Inflow: 3+ tokens from this sector in Smart Money Top 30
+> - — Neutral: 1-2 tokens in Top 30
+> - 📤 Outflow: 0 tokens in Top 30 but appeared in previous reports
+> - N/A: No data for this sector
+>
+> **② Rotation direction judgment**: where is attention flowing FROM and TO
+>
+> **③ Early-stage vs. late-stage identification** for each sector
+>
+> **④ Reallocation suggestions**: which sectors to increase/decrease exposure
 
 > 🤖 **Automate this combo** — weekly sector rotation report every Sunday evening:
 > ```bash
@@ -567,7 +725,7 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=50" \
 >   --cron "0 21 * * 0" \
 >   --tz "Asia/Shanghai" \
 >   --session isolated \
->   --message "Run CT Monitor Combo 8: compare /price/trending?hours=24 vs hours=168, compare /signals/recent?hours=6 vs hours=24, scan /info/feed for sector media attention. Generate weekly sector rotation matrix with heating/cooling/stable ratings and reallocation suggestions." \
+>   --message "Run CT Monitor Combo 8: compare /price/trending?hours=24 vs hours=168 (Source A), compare /signals/recent?hours=6 vs hours=24 (Source B), scan /info/feed for sector media attention (Source C), call Binance Smart Money Inflow API pageSize=50 (Source D). Generate sector heat change matrix with 聪明钱流向 column (🔥Inflow if 3+ tokens in sector in Top 30, —Neutral if 1-2, 📤Outflow if 0 but appeared before), rotation direction judgment, early/late-stage identification, and reallocation suggestions." \
 >   --announce \
 >   --channel telegram
 > ```
@@ -592,6 +750,12 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=50" \
 | Add to watchlist | `POST /subscriptions/?username=pump_fun` |
 | Remove from watchlist | `DELETE /subscriptions/pump_fun` |
 | System status | `GET /price/summary` |
+| **Binance Smart Money Inflow** | `POST https://www.bnbchain.org/buw/wallet/token/inflow/rank/query` — smart money net inflow ranking (no auth) |
+| **Binance Trading Signal** | `POST https://www.bnbchain.org/buw/wallet/web/signal/smart-money` — on-chain buy/sell signals (no auth) |
+| **Binance Social Hype** | `GET https://www.bnbchain.org/buw/wallet/market/token/pulse/social/hype/rank/leaderboard?chainId=56` — social hype ranking (no auth) |
+| **Binance Unified Rank** | `POST https://www.bnbchain.org/buw/wallet/market/token/pulse/unified/rank/list` — trending/alpha ranking (no auth) |
+| **Binance Meme Rank** | `GET https://www.bnbchain.org/buw/wallet/market/token/pulse/exclusive/rank/list?chainId=56` — meme token ranking (no auth) |
+| **Binance Token Audit** | `POST https://www.bnbchain.org/security/token/audit` — token security audit (no auth) |
 
 ## OpenClaw Cron Examples
 
@@ -638,7 +802,7 @@ openclaw cron add \
   --cron "0 20 * * *" \
   --tz "Asia/Shanghai" \
   --session isolated \
-  --message "Run CT Monitor Combo 5: scan /tweets/feed?limit=3000 for sector keywords (agent, AI, RWA, DePIN, meme, Solana, stablecoin, DeFi, NFT, restaking, BTCFi, GameFi) — for 'agent' keyword exclude non-crypto contexts (real estate/travel/insurance/FBI agents). Check /signals/recent?hours=24&min_score=50. Check /price/trending?hours=24 for mention_count>=2 tokens, then query Binance spot ticker/24hr for those tokens (append USDT suffix). Generate narrative heat ranking table with Volume Signal column (🔥Surge/📢Active/🔇Quiet), three-layer signal interpretation (high tweets+low volume=early signal, high volume+low tweets=hidden accumulation, both high=may be late), price validation, overheating warnings, and emerging narrative alerts." \
+  --message "Run CT Monitor Combo 5: scan /tweets/feed?limit=3000 for sector keywords (agent, AI, RWA, DePIN, meme, Solana, stablecoin, DeFi, NFT, restaking, BTCFi, GameFi) — for 'agent' keyword exclude non-crypto contexts (real estate/travel/insurance/FBI agents). Check /signals/recent?hours=24&min_score=50. Check /price/trending?hours=24 for mention_count>=2 tokens, then query Binance spot ticker/24hr for those tokens (append USDT suffix). Call Binance Social Hype API (chainId=56, pageSize=20, extract top 10). Generate narrative heat ranking table with Social Hype column (🔥 if token in narrative appears in Social Hype Top 10), four-layer signal interpretation matrix (Twitter Hype/Smart Money/Volume/Social Hype), price validation, overheating warnings, and emerging narrative alerts." \
   --announce \
   --channel telegram
 ```
@@ -662,7 +826,7 @@ openclaw cron add \
   --cron "0 12 * * *" \
   --tz "Asia/Shanghai" \
   --session isolated \
-  --message "Run CT Monitor Combo 7: get /users/top?limit=20, then fetch real-time and historical tweets for the top 5 KOLs. Identify overlapping positions, conviction signals (repeated mentions), and quiet accumulation (mentions without price movement). Report only tokens mentioned by 2+ top KOLs." \
+  --message "Run CT Monitor Combo 7: get /users/top?limit=20 (Source A), call Binance Trading Signal smart-money API (Source B), call Binance Smart Money Inflow API (Source C), call Binance Top Trader PnL API (Source D), cross-reference top inflow tokens with CT Monitor /tweets/feed to count KOL mentions (Source E). Generate 5-section report: (1) 聪明钱净流入 Top 10 with KOL Mentions column (🔥 if >=5), (2) 聪明钱建仓信号 (BUY>SELL tokens, highlight ratio>3:1), (3) 聪明钱出货警告 (SELL>BUY tokens, warn ratio>3:1), (4) Top Trader 持仓动向 (top 5 traders + shared positions), (5) KOL × 聪明钱共振 (tokens in both inflow top 10 AND KOL mentions >=5). Use exact field names from APIs. Never fabricate data." \
   --announce \
   --channel telegram
 ```
@@ -674,7 +838,7 @@ openclaw cron add \
   --cron "0 21 * * 0" \
   --tz "Asia/Shanghai" \
   --session isolated \
-  --message "Run CT Monitor Combo 8: compare /price/trending?hours=24 vs hours=168, compare /signals/recent?hours=6 vs hours=24, scan /info/feed for sector media attention. Generate weekly sector rotation matrix with heating/cooling/stable ratings and reallocation suggestions." \
+  --message "Run CT Monitor Combo 8: compare /price/trending?hours=24 vs hours=168 (Source A), compare /signals/recent?hours=6 vs hours=24 (Source B), scan /info/feed for sector media attention (Source C), call Binance Smart Money Inflow API pageSize=50 (Source D). Generate sector heat change matrix with 聪明钱流向 column (🔥Inflow if 3+ tokens in sector in Top 30, —Neutral if 1-2, 📤Outflow if 0 but appeared before), rotation direction judgment, early/late-stage identification, and reallocation suggestions." \
   --announce \
   --channel telegram
 ```
