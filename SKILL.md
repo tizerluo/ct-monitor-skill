@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & CoinGecko prices. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.2.9
+version: 3.2.11
 metadata:
   openclaw:
     requires:
@@ -214,7 +214,7 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=1&min_score=60" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 
-**Step 2: Query token price and % change** (e.g. $PENGU)
+**Step 2: Query token price and % change** (e.g. $PENGU) — auto-fallback: CoinGecko → Binance → DexScreener; check `source` field to see data origin
 ```bash
 curl -s "https://api.ctmon.xyz/api/price/token?symbol=PENGU" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
@@ -273,8 +273,8 @@ curl -s "https://api.ctmon.xyz/tweets/recent?username=cobie&limit=50" \
 
 **Step 3: Search how other KOLs reference and quote cobie**
 ```bash
-curl -s "https://api.ctmon.xyz/api/tweets/search?keyword=cobie&limit=30" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+curl -s "https://api.ctmon.xyz/tweets/feed?limit=100" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '[.[] | select(.text | ascii_downcase | contains("cobie"))]'
 ```
 
 **Synthesis prompt**:
@@ -584,9 +584,9 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=50" \
 | Market tweet feed | `GET /tweets/feed?limit=50` |
 | KOL historical tweets | `GET /tweets/recent?username=XXX&limit=20` |
 | KOL real-time tweets | `GET /twitter/realtime?username=XXX&limit=10` |
-| Keyword search | `GET /tweets/search?keyword=airdrop&limit=20` |
+| Keyword filter | `GET /tweets/feed?limit=100` + jq `select(.text \| contains("keyword"))` |
 | Unified news feed | `GET /info/feed?limit=30&min_score=0.5` |
-| Token price | `GET /price/token?symbol=BTC` |
+| Token price | `GET /price/token?symbol=BTC` — 3-level fallback (CoinGecko→Binance→DexScreener); returns `source`, `chain`, `dex`, `pair_address` |
 | Trending tokens | `GET /price/trending?hours=6` |
 | Market overview | `GET /price/summary` |
 | Alpha signals | `GET /signals/recent?hours=6&min_score=60` |
@@ -701,7 +701,7 @@ openclaw cron remove <job-id>
 | `/brief/generate` hours=8 | 4¢ | 8H briefing |
 | `/brief/generate` hours=12/24 | 2¢ | 12/24H briefing |
 | `/info/feed` | 1¢ | Unified news + RSS feed |
-| `/price/token` | 1¢ | Token price query |
+| `/price/token` | 1¢ | Token price query — 3-level fallback: CoinGecko→Binance→DexScreener; new fields: `source` (data origin), `chain`, `dex`, `pair_address` (DexScreener only) |
 | `/price/trending` | 1¢ | Trending token analysis |
 | `/price/summary` | 1¢ | Market overview |
 
