@@ -44,10 +44,10 @@ Visit [api.ctmon.xyz/docs](https://api.ctmon.xyz/api/docs) to register and get y
 ### Step 2: Install the Skill in OpenClaw
 
 ```
-/skill install ct-monitor
+/skill install openclaw-twitter-monitor
 ```
 
-Or search "CT Monitor" on [ClawHub](https://clawhub.ai/skills/ct-monitor).
+Or search "CT Monitor" on [ClawHub](https://clawhub.ai/skills/openclaw-twitter-monitor).
 
 ### Step 3: Configure API Key
 
@@ -108,7 +108,7 @@ CT Monitor's real value is in **combining multiple data sources**. Here are 6 sc
 **OpenClaw will:**
 1. Call `/twitter/realtime?username=cobie` → latest real-time tweets
 2. Call `/tweets/recent?username=cobie` → historical tweets (longer timespan)
-3. Call `/tweets/search?keyword=cobie` → how other KOLs reference and quote him
+3. Call `/tweets/feed` filtered for "cobie" → how other KOLs reference and quote him
 4. Synthesize three dimensions into a KOL profile
 
 **You get:** Recent sector/project focus + Core views (Bullish/Bearish stance) + Investment logic analysis + Influence assessment + Key insights worth noting
@@ -306,7 +306,7 @@ CT Monitor charges per API call, deducted from your account balance:
 | `/signals/recent` hours<2 | 3¢ | Real-time data (6551 source) |
 | `/signals/recent` hours≥2 | 1¢ | Historical database |
 | `/twitter/realtime` | 2¢ | Real-time tweets (6551 source) |
-| `/price/token` | 1¢ | Token price query |
+| `/price/token` | 1¢ | Token price query — 3-level fallback (CoinGecko→Binance→DexScreener); response includes `source`, `chain`, `dex`, `pair_address` fields |
 | `/price/trending` | 1¢ | Trending token analysis |
 | `/price/summary` | 1¢ | Market overview |
 | `/info/feed` | 1¢ | Unified news + RSS feed |
@@ -339,7 +339,7 @@ A: The API returns raw data (primarily English tweets). AI analysis and synthesi
 
 - API Docs: [api.ctmon.xyz/docs](https://api.ctmon.xyz/api/docs)
 - GitHub: [github.com/tizerluo/ct-monitor-skill](https://github.com/tizerluo/ct-monitor-skill)
-- ClawHub: [clawhub.ai/skills/ct-monitor](https://clawhub.ai/skills/ct-monitor)
+- ClawHub: [clawhub.ai/skills/openclaw-twitter-monitor](https://clawhub.ai/skills/openclaw-twitter-monitor)
 
 ---
 
@@ -352,7 +352,7 @@ CT Monitor 是一个专为加密市场设计的 OpenClaw Skill，整合 5000+ KO
 ### 快速上手
 
 1. 访问 [api.ctmon.xyz/docs](https://api.ctmon.xyz/api/docs) 注册并获取 API Key
-2. 在 OpenClaw 中执行 `/skill install ct-monitor`
+2. 在 OpenClaw 中执行 `/skill install openclaw-twitter-monitor`
 3. 配置 `CT_MONITOR_API_KEY` 环境变量
 
 ### 6 大组合拳场景
