@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.5
+version: 3.3.6
 metadata:
   openclaw:
     requires:
@@ -267,74 +267,117 @@ curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/
 
 ### Combo 2: Alpha Signal Deep Dive (When opportunity appears)
 
-> A signal shows a token being mentioned by multiple KOLs simultaneously — deep dive to validate. Total cost ~6¢.
+> A signal shows a token being mentioned by multiple KOLs simultaneously — deep dive to validate the alpha opportunity. Focused on altcoins and meme tokens only. Total cost ~6¢.
 
-**Step 1: Discover signals**
+**Step 1: Discover alpha signals — filter out majors, focus on altcoins/memes**
 ```bash
-curl -s "https://api.ctmon.xyz/api/signals/recent?hours=1&min_score=60" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+  jq '[.[] | select(.keyword | ascii_downcase | test("btc|eth|sol|xrp|bnb|usdc|usdt|ada|avax|dot|matic|link|ltc|atom|near|apt|sui|ton") | not)]'
 ```
+> Filters out major coins (BTC/ETH/SOL/XRP/BNB/USDC/USDT etc.) to surface only altcoin and meme alpha signals.
+> Key fields: `keyword` (token symbol e.g. `$PENGU`), `kol_count` (number of KOLs mentioning), `kols` (list of KOL usernames).
+> Pick the signal with highest `kol_count` for deep dive. If no signals pass the filter, report "No altcoin alpha signals in the past 6h."
 
-**Step 2: Query token price and % change** (e.g. $PENGU) — auto-fallback: CoinGecko → Binance → DexScreener; check `source` field to see data origin
+**Step 2: Query token price and momentum** (replace PENGU with actual signal token)
 ```bash
 curl -s "https://api.ctmon.xyz/api/price/token?symbol=PENGU" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
+> Auto-fallback: CoinGecko → Binance → DexScreener. Check `source` field to see data origin.
+> Key fields: `price_usd`, `change_24h`, `source`. If `change_24h > 0` while BTC is down, it's counter-trend strength.
 
-**Step 3: See what KOLs are actually saying**
+**Step 3: Read what KOLs are actually saying about this token**
 ```bash
-curl -s "https://api.ctmon.xyz/api/tweets/feed?limit=100" \
+curl -s "https://api.ctmon.xyz/api/tweets/feed?hours=6&limit=200" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
-  jq '[.[] | select(.text | test("PENGU|\\$PENGU"; "i"))]'
+  jq '[.[] | select(.text | test("PENGU|\\$PENGU"; "i"))] | sort_by(.like_count) | reverse'
 ```
+> Fetches 6h of tweets from all monitored KOLs, filters for the signal token, sorted by engagement.
+> Key fields: `username`, `text`, `like_count`, `retweet_count`, `priority` (ultra_high/high/normal/low), `sector`.
 
-**Step 4: Related news and RSS**
+**Step 4: Related news and RSS coverage**
 ```bash
 curl -s "https://api.ctmon.xyz/api/info/feed?coin=PENGU&limit=20" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
+> Key fields: `title`, `url` (include in report as clickable link), `score` (AI quality 0-100), `source` (media name), `summary` (AI-generated summary).
+> Translate all titles and summaries into the user's language in the final report.
 
-**Step 5: Assess influence weight of mentioning KOLs**
+**Step 5: Assess the quality of KOLs who mentioned this token**
 ```bash
-curl -s "https://api.ctmon.xyz/api/users/top?limit=20" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+curl -s "https://api.ctmon.xyz/api/users/top?limit=200" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+  jq '[.[] | select(.username | IN("KOL1","KOL2","KOL3"))]'
 ```
+> Replace KOL1/KOL2/KOL3 with the actual `kols` list from Step 1.
+> Key fields: `username`, `score` (0-100, KOL quality score), `priority` (ultra_high/high/normal/low), `followers_count`, `sector`.
+> This tells you if the signal is backed by high-quality KOLs or low-quality noise accounts.
 
-**Step 6: Binance Trading Signal — 链上聪明钱买卖信号验证**
+**Step 6: On-chain validation — cross-check Binance Unified Rank + Smart Money**
 ```bash
 curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/web/signal/smart-money' \
   -H 'Accept-Encoding: identity' \
   -H 'Content-Type: application/json' \
-  -d '{"tokenSymbol":"PENGU","page":1,"pageSize":20}' | jq '.data.signalList[:10]'
+  -d '{"smartSignalType":"","page":1,"pageSize":20,"chainId":"CT_501"}' | jq '.data[:10]'
 ```
-> Returns smart money buy/sell signals. Key fields: `action` (BUY/SELL), `amount`, `wallet` (anonymized), `timestamp`.
-> If `{"code":404,"msg":"token not found"}`, the token has no on-chain tracking yet.
+> Returns current smart money buy/sell signals on Solana chain (where most meme tokens live).
+> Key fields: `ticker`, `direction` (buy/sell), `smartMoneyCount`, `triggerPrice`, `maxGain`.
+> **Cross-reference**: check if the signal token's `ticker` appears in this list.
+> - If token appears with `direction=buy` → strong on-chain confirmation 🔥
+> - If token appears with `direction=sell` → smart money exiting ⚠️
+> - If token not in list → no on-chain data yet (may be early-stage or non-Solana token)
 
 **Synthesis prompt**:
-> Above is multi-dimensional data on $PENGU (signals + price + KOL tweets + news + KOL influence + smart money signals). Generate a signal analysis report with 6 dimensions:
-> ① Signal strength rating (Strong/Medium/Weak)
-> ② Quality assessment of mentioning KOLs
-> ③ Price context analysis
-> ④ News corroboration
-> ⑤ **On-chain confirmation** (from Step 6): 
->    - If smart money BUY signals > SELL: "链上聪明钱正在建仓 🔍"
->    - If smart money SELL signals > BUY: "⚠️ 聪明钱正在出货"
->    - If 404 or no signals: "暂无链上数据"
-> ⑥ Trade suggestion (with risk warning)
-> 
-> **Signal Classification**:
-> - **强 Alpha** 🔥: KOL 共识 + 聪明钱建仓 + 价格上涨
-> - **叙事 Alpha** 📢: KOL 共识 + 无链上确认（可能早期或纯叙事）
-> - **隐秘 Alpha** 🔍: 聪明钱建仓 + 低 KOL 讨论（早期发现）
-> - **警告信号** ⚠️: KOL 热度高 + 聪明钱出货
+> You have received 6 data sources for a specific altcoin/meme token (replace $PENGU with actual token):
+> - Source A: signal data — `keyword`, `kol_count`, `kols` list
+> - Source B: price data — `price_usd`, `change_24h`, `source`
+> - Source C: KOL tweets — each item: `username`, `text`, `like_count`, `priority`, `sector`
+> - Source D: news/RSS — each item: `title`, `url`, `score`, `source`, `summary`
+> - Source E: KOL quality scores — each item: `username`, `score` (0-100), `priority`, `followers_count`
+> - Source F: Binance Solana smart money signals — each item: `ticker`, `direction`, `smartMoneyCount`
+>
+> Generate a **signal analysis report** in the user's language with this structure:
+>
+> **Header**: "⚡ Alpha Signal: $TOKEN — [timestamp]"
+>
+> **① 信号强度**: Rate as 强/中/弱 based on `kol_count` (≥5=强, 3-4=中, 2=弱). List the KOL names.
+>
+> **② KOL 质量**: From Source E, classify the mentioning KOLs:
+> - 顶级 (score≥90 or priority=ultra_high): list names
+> - 优质 (score 70-89 or priority=high): list names  
+> - 普通 (score<70): list names
+> - Overall verdict: "高质量共识" / "混合质量" / "低质量噪音"
+>
+> **③ 价格上下文**: Current price + 24h change. Note if counter-trend (up while BTC down). Data source.
+>
+> **④ KOL 在说什么**: Summarize the top 3-5 tweets by engagement. Quote key phrases. Identify the narrative (e.g. "partnership announcement", "airdrop", "technical breakout", "pure hype").
+>
+> **⑤ 新闻佐证**: List all news items with `score >= 50` as: `[source] [title](url) → [one-line translated summary]`. If no news, write "暂无相关新闻报道".
+>
+> **⑥ 链上验证**: 
+> - If token in Source F with direction=buy: "🔥 链上聪明钱正在建仓 (smartMoneyCount=N)"
+> - If token in Source F with direction=sell: "⚠️ 聪明钱正在出货"
+> - If token not in Source F: "暂无链上数据（可能为非Solana链代币或早期信号）"
+>
+> **🎯 信号分类 & 建议**:
+> - **强 Alpha** 🔥: kol_count≥5 + 顶级KOL + 链上建仓 + 价格上涨 → 值得重点关注
+> - **叙事 Alpha** 📢: kol_count≥3 + 优质KOL + 无链上确认 → 早期叙事，高风险高回报
+> - **隐秘 Alpha** 🔍: 链上建仓 + kol_count<3 → 链上先行，KOL尚未跟进
+> - **警告信号** ⚠️: kol_count高 + 链上出货 → 可能是出货配合拉盘
+> - **噪音信号** ❌: 低质量KOL + 无链上 + 无新闻 → 忽略
+>
+> **Language rule**: Write the ENTIRE report in the user's language. Translate all news titles and summaries. Keep token symbols ($PENGU), KOL usernames (@name), and proper nouns in original form.
+>
+> **Hard rules**: Never fabricate. If Source D has no items with score≥50, write "暂无相关新闻". Always include the `url` from Source D as a clickable markdown link `[title](url)`.
 
-> 🤖 **Automate this combo** — check every 15 minutes, alert only when a real signal appears:
+> 🤖 **Automate this combo** — check every 15 minutes, alert only when a real altcoin signal appears:
 > ```bash
 > openclaw cron add \
->   --name "CT Signal Alert" \
+>   --name "CT Alpha Alert" \
 >   --cron "*/15 * * * *" \
 >   --session isolated \
->   --message "Call CT Monitor /signals/recent?hours=0.25&min_score=60. If any signal has kol_count >= 3, run the full Combo 2 deep dive on that token (price + KOL tweets + news) and send an alert. If no qualifying signals, stay silent." \
+>   --message "Call CT Monitor /api/signals/recent?hours=0.25&min_score=60. Filter out BTC/ETH/SOL/XRP/BNB/USDC/USDT. If any altcoin/meme signal has kol_count >= 3, run the full Combo 2 deep dive on that token and send an alert. If no qualifying signals, stay silent." \
 >   --announce \
 >   --channel telegram
 > ```
