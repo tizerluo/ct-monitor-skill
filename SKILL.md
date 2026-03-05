@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.17
+version: 3.3.18
 metadata:
   openclaw:
     requires:
@@ -59,6 +59,38 @@ metadata:
 | **On-Chain Hype Validation**<br>_"Is the hype real on-chain?"_ | `GET /buw/wallet/market/token/pulse/social/hype/rank/leaderboard` + `/price/trending` → **Combo 5** | Cross-verify Twitter hype with Binance social hype score |
 | **Meme Token Hunting**<br>_"What memes are trending?"_ | `GET /buw/wallet/market/token/pulse/exclusive/rank/list` + `/tweets/feed` → **Combo 9** | Binance Pulse meme rank + Twitter mentions |
 | **Sector Capital Flow**<br>_"Where is smart money flowing by sector?"_ | `POST /buw/wallet/token/inflow/rank/query` + `/signals/recent` → **Combo 8** | Smart money sector-level flow analysis |
+
+## 🚀 Quick Start — What Can I Do For You?
+
+When a user first interacts, or asks "what can you do?" / "how do I use this?" / "what combos are available?", **proactively present this menu**:
+
+---
+
+**CT Monitor has 10 ready-to-run intelligence workflows (Combos). Just tell me which one you want:**
+
+| # | Combo | 触发方式 | 功能 |
+|---|-------|---------|------|
+| **1** | 📰 **Morning Brief** | "早报" / "daily brief" / "今天市场怎样" | 每日多源情报简报：KOL推文 + 新闻 + 价格 + 信号，5分钟掌握全局 |
+| **1.5** | 🔥 **Trending Token Discovery** | "什么币在热" / "trending" / "热门代币" | 四维热度排名：KOL提及 × CoinGecko × 价格涨幅 × 新闻覆盖 |
+| **2** | 🎯 **Alpha Signal Deep Dive** | "Alpha信号" / "deep dive $XXX" / "挖掘机会" | 深度挖掘：信号 → KOL验证 → 价格确认 → 新闻背景 → 四层交叉验证 |
+| **3** | 👤 **KOL Deep Profile** | "分析 @xxx" / "KOL画像" / "这个人说了什么" | 单个KOL深度画像：历史观点 + 实时推文 + 影响力评分 + 赛道标签 |
+| **4** | 🚨 **Security Alert** | "有没有黑客" / "安全警报" / "hack news" | 实时安全扫描：Hack/Exploit/Rug检测 → 链上验证 → 紧急程度评级 |
+| **5** | 📖 **Narrative Tracker** | "市场在讲什么故事" / "叙事分析" / "narrative" | 叙事追踪：KOL推文 + 新闻 + Binance社交热度 → 识别正在形成的市场叙事 |
+| **6** | 🎁 **Airdrop Hunter** | "空投" / "airdrop" / "有什么活动" / "TGE" | 空投猎手：扫描48h推文 + 新闻 → 提取快照日期/白名单/TGE信息 |
+| **7** | 🐋 **Smart Money Tracker** | "聪明钱" / "巨鲸" / "smart money" / "链上信号" | 聪明钱追踪：链上买卖信号 + 净流入排名 + Top Trader持仓 + KOL交叉验证 |
+| **8** | 🔄 **Sector Rotation** | "赛道轮动" / "资金流向" / "哪个赛道热" | 赛道轮动检测：KOL热度 × 媒体关注 × 聪明钱流向 → 识别资金切换方向 |
+| **9** | 🐸 **Meme Hunter** | "Meme币" / "meme hunting" / "什么meme在涨" | Meme猎手：Binance Pulse排名 + KOL提及 + 链上流动性验证 |
+
+**示例触发语句**：
+- "帮我跑一下 Combo 1 早报"
+- "有没有最新的 Alpha 信号？"（→ Combo 2）
+- "分析一下 @VitalikButerin 最近说了什么"（→ Combo 3）
+- "聪明钱最近在买什么？"（→ Combo 7）
+- "BSC 上有什么 meme 在涨？"（→ Combo 9）
+
+> 💡 **Tip**: 每个 Combo 都会自动调用多个数据源并生成中文综合分析报告。你只需要说出你的需求，我来决定用哪个 Combo。
+
+---
 
 ## Instructions
 
