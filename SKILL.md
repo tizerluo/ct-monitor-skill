@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.14
+version: 3.3.15
 metadata:
   openclaw:
     requires:
@@ -659,27 +659,30 @@ curl -s "https://api.ctmon.xyz/api/users/top?limit=20" \
 **Step 2: Binance Trading Signal — 链上聪明钱买卖信号**
 ```bash
 curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/web/signal/smart-money' \
-  -H 'Accept-Encoding: identity' \
   -H 'Content-Type: application/json' \
-  -d '{"page":1,"pageSize":50}' | jq '.data.signalList[:20]'
+  -H 'Accept-Encoding: identity' \
+  -d '{"smartSignalType":"","page":1,"pageSize":50,"chainId":"56"}' | \
+  jq '[.data[] | {ticker, direction, smartMoneyCount, alertPrice, currentPrice, maxGain, exitRate, status}]'
 ```
-> Returns recent smart money buy/sell signals across all tokens. Key fields: `tokenSymbol`, `action` (BUY/SELL), `amount`, `wallet`, `timestamp`.
+> `chainId`: `"56"` (BSC) or `"CT_501"` (Solana). Response: `data` is a direct array. Key fields: `ticker`, `direction` (buy/sell), `smartMoneyCount`, `alertPrice`, `currentPrice`, `maxGain` (%), `exitRate` (%), `status` (active/timeout/completed).
 
 **Step 3: Binance Smart Money Inflow — 聪明钱净流入排名**
 ```bash
-curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/token/inflow/rank/query' \
-  -H 'Accept-Encoding: identity' \
+curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/tracker/wallet/token/inflow/rank/query' \
   -H 'Content-Type: application/json' \
-  -d '{"page":1,"pageSize":20}' | jq '.data.rankList[:15]'
+  -H 'Accept-Encoding: identity' \
+  -d '{"chainId":"56","period":"24h","tagType":2}' | \
+  jq '[.data | sort_by(-.inflow) | .[:15][] | {tokenName, price, priceChangeRate, inflow, traders}]'
 ```
-> Returns tokens with highest smart money net inflow. Key fields: `symbol`, `netInflow`, `change24h`.
+> Response: `data` is a direct array. Key fields: `tokenName`, `price`, `priceChangeRate` (%), `inflow` (USD net inflow, negative = outflow), `traders` (smart money address count).
 
-**Step 4: Binance Top Trader PnL (optional)**
+**Step 4: Binance Top Trader PnL**
 ```bash
-curl -s 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/web/futures/copyTrading/leaderboard/followSortLeaderboard?pageSize=10' \
-  -H 'Accept-Encoding: identity' | jq '.data.list[:10]'
+curl -s 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/market/leaderboard/query?tag=ALL&pageNo=1&chainId=56&pageSize=10&sortBy=0&orderBy=0&period=7d' \
+  -H 'Accept-Encoding: identity' | \
+  jq '[.data.data[:10][] | {addressLabel, realizedPnl, winRate, totalVolume, topEarningTokens: [.topEarningTokens[:3][] | {tokenSymbol, realizedPnl}]}]'
 ```
-> Returns top traders by PnL. Key fields: `nickName`, `roi`, `pnl`. Note their top positions for alpha signals.
+> Response: `data.data` is the trader array. Key fields: `addressLabel` (trader name/null), `realizedPnl` (USD), `winRate`, `totalVolume`, `topEarningTokens[].tokenSymbol`.
 
 **Step 5: Cross-reference with CT Monitor KOL tweets**
 ```bash
