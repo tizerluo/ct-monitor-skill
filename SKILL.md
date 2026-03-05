@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.3
+version: 3.3.4
 metadata:
   openclaw:
     requires:
@@ -208,9 +208,9 @@ curl -s "https://api.ctmon.xyz/api/price/summary" \
 curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/market/token/pulse/unified/rank/list' \
   -H 'Accept-Encoding: identity' \
   -H 'Content-Type: application/json' \
-  -d '{"page":1,"pageSize":20}' | jq '.data.rankList[:10]'
+  -d '{"page":1,"pageSize":20}' | jq '.data.tokens[:10]'
 ```
-> Returns Binance's unified ranking (trending + alpha signals). Key fields: `symbol`, `rank`, `score`.
+> Returns Binance's unified on-chain ranking (top 200 tokens by trading activity). Key fields: `symbol`, `percentChange24h`, `volume24h`, `price`. Results are ordered by on-chain activity score (position = rank). Note: field is `.data.tokens` (not `.data.rankList`).
 
 **Synthesis prompt**:
 > You have received four data sources:
@@ -218,7 +218,7 @@ curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/
 > - Source B: alpha signals — tokens where multiple KOLs are simultaneously mentioning
 > - Source C: news feed — recent news and RSS articles
 > - Source D: market summary — BTC/ETH baseline prices and 24h changes
-> - Source E: Binance unified ranking — top 10 tokens from on-chain trending/alpha signals, each item: `symbol`, `rank`, `score`
+> - Source E: Binance unified ranking — top 10 tokens by on-chain activity (position = rank), each item: `symbol`, `percentChange24h`, `volume24h`, `price`
 >
 > Generate a **Markdown-formatted** trending token report:
 >
@@ -237,7 +237,7 @@ curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/
 > - Signal column: `⚡` if token appears in Source B (signals), otherwise `—`
 > - Top KOLs: list up to 3 names from `top_kols` field
 > - 24h Change: use `price_change` field (not `price_change_24h`); format as `+X.XX%` or `-X.XX%`
-> - 链上验证 column: `🔥` if token appears in Source E (Binance unified ranking Top 10), otherwise `—`
+> - 链上验证 column: `🔥` if token's `symbol` appears in Source E `.data.tokens[:10]` (Binance unified ranking Top 10 by position), otherwise `—`
 > - News column: `✅` if Source C contains any article mentioning this token, otherwise `❌`
 > - Heat Reason: synthesize from `sample_tweets` + news coverage + price behavior into **≤15 words** — **never fabricate**; if no clear reason found, write "KOL mentions, reason unclear"
 > - Price direction label: compare token's `price_change` against BTC baseline from Source D — if token is up while BTC is down, label as "outperforming (counter-trend)"; if token is down more than BTC, label as "underperforming"; do NOT use fixed thresholds like ">+20%"
