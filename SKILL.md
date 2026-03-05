@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.11
+version: 3.3.12
 metadata:
   openclaw:
     requires:
@@ -527,20 +527,22 @@ curl -g -s 'https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","SOLUS
 ```
 > Replace the symbols array with actual tokens from Step 3a. Only include tokens that have a Binance USDT pair. Skip tokens not listed on Binance spot.
 
-**Step 3c: CoinGecko Trending — 全球社交热度排名**
+**Step 3c: Binance Social Hype — BSC 社交热度排名**
 ```bash
-curl -s 'https://api.coingecko.com/api/v3/search/trending' | \
-  jq '[.coins[:10] | .[] | {rank: .item.score, symbol: .item.symbol, name: .item.name, market_cap_rank: .item.market_cap_rank, price_change_24h: .item.data.price_change_percentage_24h.usd}]'
+curl -s 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/market/token/pulse/social/hype/rank/leaderboard?chainId=56&sentiment=All&socialLanguage=ALL&targetLanguage=en&timeRange=1' \
+  -H 'Accept-Encoding: identity' | \
+  jq '[.data.leaderBoardList[:10] | .[] | {symbol: .metaInfo.symbol, hype: .socialHypeInfo.socialHype, sentiment: .socialHypeInfo.sentiment, summary: .socialHypeInfo.socialSummaryBriefTranslated}]'
 ```
-> Returns CoinGecko global trending tokens (no API key required). Key fields: `symbol`, `rank`, `price_change_24h`.
-> Note: The original Binance Web3 Social Hype API (`web3.binance.com/bapi/defi/...`) is a private internal API that has changed its parameter format and is no longer reliably accessible. CoinGecko Trending is used as a stable replacement.
+> Required params: `chainId` (56=BSC, 8453=Base, CT_501=Solana), `targetLanguage` (en/zh), `timeRange` (1=24h), `sentiment` (All/Positive/Negative/Neutral).
+> Key fields: `symbol`, `hype` (social hype index), `sentiment`, `summary` (AI-generated social summary).
+> Note: This API is only accessible from server environments (EC2/cloud). Local macOS may get connection reset due to IP geo-restriction — this is expected.
 
 **Synthesis prompt**:
 > You have received four data sources:
 > - Source A: sector keyword tweet counts (from Step 1) — 12 keywords scanned across ~23h of KOL tweets
 > - Source B: alpha signals (from Step 2) — tokens with multi-KOL resonance in last 24h
 > - Source C: trending tokens + Binance spot volume (from Step 3a + 3b) — KOL mention counts, price changes, and Binance 24h volume/trade counts
-> - Source D: CoinGecko Trending — top 10 globally trending tokens, each item: `symbol`, `rank`, `price_change_24h`
+> - Source D: Binance Social Hype leaderboard (BSC) — top 10 tokens by social hype score, each item: `symbol`, `hype` (index), `sentiment`, `summary` (AI social brief)
 >
 > **Filter rule for "agent" keyword**: When counting "agent" mentions, exclude non-crypto contexts (real estate agents, travel agents, insurance agents, FBI agents, secret agents). Only count crypto/AI/on-chain/trading agent contexts (AI agent, on-chain agent, DeFi agent, AgentFi, trading bot agent, autonomous agent).
 >
@@ -559,8 +561,8 @@ curl -s 'https://api.coingecko.com/api/v3/search/trending' | \
 > - 🔇 Quiet: quoteVolume < $50M OR no Binance listing
 > - N/A: token not on Binance spot
 >
-> Social Hype column rules (from Source D — CoinGecko Trending):
-> - 🔥 if any token in this narrative appears in CoinGecko Trending Top 10
+> Social Hype column rules (from Source D — Binance Social Hype):
+> - 🔥 if any token in this narrative appears in Binance Social Hype Top 10
 > - — if not
 >
 > **② Four-Layer Signal Interpretation** — for each narrative in Top 5, assess using the matrix:
@@ -587,7 +589,7 @@ curl -s 'https://api.coingecko.com/api/v3/search/trending' | \
 >   --cron "0 20 * * *" \
 >   --tz "Asia/Shanghai" \
 >   --session isolated \
->   --message "Run CT Monitor Combo 5: scan /tweets/feed?limit=3000 for sector keywords (agent, AI, RWA, DePIN, meme, Solana, stablecoin, DeFi, NFT, restaking, BTCFi, GameFi) — for 'agent' keyword exclude non-crypto contexts (real estate/travel/insurance/FBI agents). Check /signals/recent?hours=24&min_score=50. Check /price/trending?hours=24 for mention_count>=2 tokens, then query Binance spot ticker/24hr for those tokens (append USDT suffix). Call CoinGecko Trending API (https://api.coingecko.com/api/v3/search/trending, extract top 10 coins). Generate narrative heat ranking table with Social Hype column (🔥 if token in narrative appears in CoinGecko Trending Top 10), four-layer signal interpretation matrix (Twitter Hype/Smart Money/Volume/Social Hype), price validation, overheating warnings, and emerging narrative alerts." \
+>   --message "Run CT Monitor Combo 5: scan /tweets/feed?limit=3000 for sector keywords (agent, AI, RWA, DePIN, meme, Solana, stablecoin, DeFi, NFT, restaking, BTCFi, GameFi) — for 'agent' keyword exclude non-crypto contexts (real estate/travel/insurance/FBI agents). Check /signals/recent?hours=24&min_score=50. Check /price/trending?hours=24 for mention_count>=2 tokens, then query Binance spot ticker/24hr for those tokens (append USDT suffix). Call Binance Social Hype API (chainId=56, sentiment=All, socialLanguage=ALL, targetLanguage=en, timeRange=1, extract top 10 from leaderBoardList). Generate narrative heat ranking table with Social Hype column (🔥 if token in narrative appears in Binance Social Hype Top 10), four-layer signal interpretation matrix (Twitter Hype/Smart Money/Volume/Social Hype), price validation, overheating warnings, and emerging narrative alerts." \
 >   --announce \
 >   --channel telegram
 > ```
