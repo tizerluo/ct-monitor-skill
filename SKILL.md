@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.9
+version: 3.3.10
 metadata:
   openclaw:
     requires:
@@ -438,32 +438,48 @@ curl -s "https://api.ctmon.xyz/api/tweets/feed?hours=48&limit=500" \
 
 **Step 1: Confirm the event**
 ```bash
-curl -s "https://api.ctmon.xyz/api/tweets/feed?limit=100" \
+curl -s "https://api.ctmon.xyz/api/tweets/feed?hours=48&limit=500" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
-  jq '[.[] | select(.text | test("hack|exploit|rug|drain|emergency|pause|vulnerability"; "i"))]'
+  jq '[.[] | select(
+    .text | ascii_downcase | test("hack|exploit|rug|drain|stolen|breach|compromised|vulnerability")
+    or (
+      (.text | ascii_downcase | test("attack|warning|alert|suspicious|emergency|pause"))
+      and (.text | ascii_downcase | test("contract|vault|protocol|wallet|token|defi|nft|fund|pool|liquidity"))
+    )
+  ) | {username, created_at, text, like_count, view_count}]'
 ```
+> Filter logic: Group A keywords (`hack|exploit|rug|drain|stolen|breach|compromised|vulnerability`) trigger alone. Group B keywords (`attack|warning|alert|suspicious|emergency|pause`) only trigger when co-occurring with DeFi context words — this avoids false positives from geopolitical/macro news.
+> After filtering, manually identify distinct security events (ignore duplicates and macro/political noise).
 
 **Step 2: Check news coverage**
 ```bash
-curl -s "https://api.ctmon.xyz/api/info/feed?limit=30" \
+curl -s "https://api.ctmon.xyz/api/info/feed?hours=48&limit=50" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
-  jq '[.[] | select(.title | test("hack|exploit|rug|security"; "i"))]'
+  jq '[.[] | select(.title | ascii_downcase | test("hack|exploit|rug|stolen|breach|security|vulnerability")) | {title, source, published_at, url, score}]'
 ```
+> Note: For breaking events, news may lag 1-6 hours behind Twitter. If 0 results, note "news not yet available" and rely on Step 1 KOL tweets.
 
 **Step 3: Check affected token price**
 ```bash
 curl -s "https://api.ctmon.xyz/api/price/token?symbol=XXX" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
+> Replace `XXX` with the token symbol identified in Step 1. Check `change_1h` and `change_24h` for panic signals. A sharp drop (>10% in 1h) confirms market reaction.
 
-**Step 4: Last 15-minute panic signals**
+**Step 4: Recent panic signals (last 1h)**
 ```bash
-curl -s "https://api.ctmon.xyz/api/signals/recent?hours=0.25" \
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=1&min_score=0" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
+> If 0 results: event may be too recent or too niche to generate KOL signal volume yet. This is normal for breaking events — rely on Step 1 + Step 3 data.
 
 **Synthesis prompt**:
-> Above is security event data (KOL tweets + news + price + real-time signals). Generate a security flash report: ① Event confirmation (real or FUD) ② Impact scope assessment ③ Affected assets analysis ④ Urgency rating (High/Medium/Low) ⑤ Recommended actions
+> Above is security event data (KOL tweets + news + price + signals). Generate a security flash report in the user's language:
+> ① 事件确认 — Is this a real exploit/hack/rug or FUD? Summarize what happened, who reported it, and when.
+> ② 影响范围 — How many users/funds affected? Which protocol/vault/chain? Is it isolated or systemic risk?
+> ③ 受影响资产分析 — Token price reaction (1h/24h change). Is the market pricing in the risk?
+> ④ 紧急程度评级 — Rate as 🔴 High / 🟡 Medium / 🟢 Low based on: loss size, scope, official response speed, and whether root cause is disclosed.
+> ⑤ 操作建议 — What should holders do? (Hold/Exit/Monitor). What signals to watch next (official post-mortem, bounty response, further exploits)?
 
 > 🤖 **Automate this combo** — monitor every 15 minutes, alert immediately on confirmed security events:
 > ```bash
@@ -471,7 +487,7 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=0.25" \
 >   --name "CT Security Watch" \
 >   --cron "*/15 * * * *" \
 >   --session isolated \
->   --message "Call CT Monitor /tweets/feed?limit=100 and filter for hack/exploit/rug/drain/emergency/pause/vulnerability. Also check /info/feed?limit=30 for security news. If 3+ KOLs mention the same security event, run the full Combo 5 analysis and send an URGENT alert. If nothing found, stay silent." \
+>   --message "Call CT Monitor /api/tweets/feed?hours=1&limit=200 and filter for: Group A (hack|exploit|rug|drain|stolen|breach|compromised|vulnerability) OR Group B (attack|warning|alert|suspicious|emergency|pause) AND DeFi context (contract|vault|protocol|wallet|token|defi|nft|fund|pool). If 2+ KOLs mention the same security event, run the full Combo 4 analysis and send an URGENT alert. If nothing found, stay silent." \
 >   --announce \
 >   --channel telegram
 > ```
