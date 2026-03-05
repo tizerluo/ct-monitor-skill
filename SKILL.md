@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.12
+version: 3.3.13
 metadata:
   openclaw:
     requires:
@@ -531,10 +531,10 @@ curl -g -s 'https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","SOLUS
 ```bash
 curl -s 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/market/token/pulse/social/hype/rank/leaderboard?chainId=56&sentiment=All&socialLanguage=ALL&targetLanguage=en&timeRange=1' \
   -H 'Accept-Encoding: identity' | \
-  jq '[.data.leaderBoardList[:10] | .[] | {symbol: .metaInfo.symbol, hype: .socialHypeInfo.socialHype, sentiment: .socialHypeInfo.sentiment, summary: .socialHypeInfo.socialSummaryBriefTranslated}]'
+  jq '[.data.leaderBoardList[:10] | .[] | {symbol: .metaInfo.symbol, hype: .socialHypeInfo.socialHype, kol_count: .socialHypeInfo.kolCount, sentiment: .socialHypeInfo.sentiment, price_change_24h: .marketInfo.priceChange, summary: .socialHypeInfo.socialSummaryBriefTranslated}]'
 ```
 > Required params: `chainId` (56=BSC, 8453=Base, CT_501=Solana), `targetLanguage` (en/zh), `timeRange` (1=24h), `sentiment` (All/Positive/Negative/Neutral).
-> Key fields: `symbol`, `hype` (social hype index), `sentiment`, `summary` (AI-generated social summary).
+> Key fields: `symbol`, `hype` (social hype index), `kol_count`, `sentiment`, `price_change_24h` (24h price change %), `summary` (AI-generated social summary).
 > Note: This API is only accessible from server environments (EC2/cloud). Local macOS may get connection reset due to IP geo-restriction — this is expected.
 
 **Synthesis prompt**:
@@ -542,7 +542,7 @@ curl -s 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/m
 > - Source A: sector keyword tweet counts (from Step 1) — 12 keywords scanned across ~23h of KOL tweets
 > - Source B: alpha signals (from Step 2) — tokens with multi-KOL resonance in last 24h
 > - Source C: trending tokens + Binance spot volume (from Step 3a + 3b) — KOL mention counts, price changes, and Binance 24h volume/trade counts
-> - Source D: Binance Social Hype leaderboard (BSC) — top 10 tokens by social hype score, each item: `symbol`, `hype` (index), `sentiment`, `summary` (AI social brief)
+> - Source D: Binance Social Hype leaderboard (BSC) — top 10 tokens by social hype score, each item: `symbol`, `hype` (index), `kol_count`, `sentiment`, `price_change_24h` (%), `summary` (AI social brief)
 >
 > **Filter rule for "agent" keyword**: When counting "agent" mentions, exclude non-crypto contexts (real estate agents, travel agents, insurance agents, FBI agents, secret agents). Only count crypto/AI/on-chain/trading agent contexts (AI agent, on-chain agent, DeFi agent, AgentFi, trading bot agent, autonomous agent).
 >
