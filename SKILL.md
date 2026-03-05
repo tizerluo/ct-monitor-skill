@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.4
+version: 3.3.5
 metadata:
   openclaw:
     requires:
@@ -213,11 +213,11 @@ curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/
 > Returns Binance's unified on-chain ranking (top 200 tokens by trading activity). Key fields: `symbol`, `percentChange24h`, `volume24h`, `price`. Results are ordered by on-chain activity score (position = rank). Note: field is `.data.tokens` (not `.data.rankList`).
 
 **Synthesis prompt**:
-> You have received four data sources:
+> You have received five data sources:
 > - Source A: trending token list — each item: `symbol`, `cg_rank` (CoinGecko trending rank, 1=hottest), `mention_count` (distinct KOLs mentioning it), `price_change` (24h % from CoinGecko), `top_kols`, `sample_tweets`
-> - Source B: alpha signals — tokens where multiple KOLs are simultaneously mentioning
-> - Source C: news feed — recent news and RSS articles
-> - Source D: market summary — BTC/ETH baseline prices and 24h changes
+> - Source B: alpha signals — each item: `keyword` (e.g. `$BTC`), `kol_count`, `kols` list; tokens where multiple KOLs are simultaneously mentioning
+> - Source C: news feed — recent news and RSS articles, each item has `title`, `coins`, `score`
+> - Source D: market summary — BTC/ETH baseline prices and 24h changes (key is full name e.g. `bitcoin`, `ethereum`)
 > - Source E: Binance unified ranking — top 10 tokens by on-chain activity (position = rank), each item: `symbol`, `percentChange24h`, `volume24h`, `price`
 >
 > Generate a **Markdown-formatted** trending token report:
@@ -226,29 +226,38 @@ curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/
 >
 > **📊 Market Baseline**: One line — BTC and ETH 24h change from Source D. This is the baseline to judge relative strength.
 >
-> **📈 Heat Ranking** — use a Markdown table, sorted by `mention_count` descending (ties broken by `abs(price_change)` descending):
-> | Signal | Token | KOL Mentions | Top KOLs | 24h Change | CG Rank | 链上验证 | News | Heat Reason |
-> |--------|-------|-------------|---------|-----------|---------|---------|------|-------------|
-> | ⚡ | $BTC | 52 | AshCrypto, CoinDesk, lookonchain | -2.11% | #4 | 🔥 | ✅ | Macro pressure, KOLs debating support levels |
-> | — | $RIVER | 4 | KOL1, KOL2 | +21.12% | #7 | — | ❌ | Cross-chain stablecoin narrative + compensation plan |
+> **📈 Heat Ranking** — use a Markdown table with **6 columns**, sorted by `mention_count` descending (ties broken by `abs(price_change)` descending):
+> | Signal | Token | KOL提及 | 代表KOL | 24h涨跌 | 验证 | 热度原因 |
+> |--------|-------|---------|---------|---------|------|---------|
+> | ⚡ | **$BTC** | 52次 | AshCrypto, CoinDesk, lookonchain | -2.11% | ⚡📰 | 宏观压力，KOL争论支撑位 |
+> | — | **$RIVER** | 4次 | KOL1, KOL2 | +21.12% | 🔥 | 跨链稳定币叙事+补偿计划 |
 >
-> Rules for the table:
-> - Only include tokens where `mention_count >= 2`, sorted by `mention_count` desc; ties broken by `abs(price_change)` desc — do NOT output this sorting logic as text in the report
-> - Signal column: `⚡` if token appears in Source B (signals), otherwise `—`
-> - Top KOLs: list up to 3 names from `top_kols` field
-> - 24h Change: use `price_change` field (not `price_change_24h`); format as `+X.XX%` or `-X.XX%`
-> - 链上验证 column: `🔥` if token's `symbol` appears in Source E `.data.tokens[:10]` (Binance unified ranking Top 10 by position), otherwise `—`
-> - News column: `✅` if Source C contains any article mentioning this token, otherwise `❌`
-> - Heat Reason: synthesize from `sample_tweets` + news coverage + price behavior into **≤15 words** — **never fabricate**; if no clear reason found, write "KOL mentions, reason unclear"
-> - Price direction label: compare token's `price_change` against BTC baseline from Source D — if token is up while BTC is down, label as "outperforming (counter-trend)"; if token is down more than BTC, label as "underperforming"; do NOT use fixed thresholds like ">+20%"
+> Rules for the **验证** (Verification) column — combine applicable emoji, no spaces between them:
+> - `⚡` = token's symbol (strip `$` prefix) appears in Source B `keyword` field (KOL consensus signal)
+> - `🔥` = token's symbol appears in Source E top 10 by position (Binance on-chain ranking)
+> - `📰` = Source C contains any article with `score >= 50` mentioning this token in `coins` field
+> - If none apply, write `—`
+> - Examples: `⚡🔥` (signal + on-chain), `⚡📰` (signal + news), `🔥📰` (on-chain + news), `⚡🔥📰` (all three)
+>
+> Other column rules:
+> - Only include tokens where `mention_count >= 2`, sorted by `mention_count` desc; ties broken by `abs(price_change)` desc — do NOT output this sorting logic as text
+> - Signal column: `⚡` if token appears in Source B, otherwise `—`
+> - 代表KOL: list up to 3 names from `top_kols` field
+> - 24h涨跌: use `price_change` field (not `price_change_24h`); format as `+X.XX%` or `-X.XX%`; compare against BTC baseline — if token up while BTC down, append "(逆势)" label
+> - 热度原因: synthesize from `sample_tweets` + news + price behavior into **≤15 words** — **never fabricate**; if no clear reason, write "KOL关注，原因不明"
 >
 > **⚡ Off-Radar Signals** (after the table, only if applicable):
-> - If Source B contains any token NOT in Source A (i.e. not in trending list) AND `kol_count >= 2`, list them as: `⚡ $SYMBOL — N KOLs mentioning simultaneously ([KOL names]): [one-line summary from sample_tweets, ≤15 words]`
+> - If Source B contains any token NOT in Source A (not in trending list) AND `kol_count >= 2`, list them as: `⚡ $SYMBOL — N KOLs同时提及 ([KOL names]): [one-line summary from sample_tweets, ≤15 words]`
 > - If no such tokens exist, omit this section entirely
 >
-> **⚠️ Risk Warnings** (after Off-Radar Signals section):
-> - For any token with `price_change < -50%`: `⚠️ $SYMBOL abnormal crash (X%) — investigate cause: possible manipulation / negative catalyst / liquidity crisis`
-> - For any token with `cg_rank ≤ 5` AND `mention_count = 0`: `⚠️ CoinGecko trending but zero KOL coverage: $SYMBOL (X%) — no KOL backing, caution chasing`
+> **🔥 Binance链上独家** (after Off-Radar Signals, only if applicable):
+> - If Source E top 10 contains any token NOT in Source A (not in KOL trending list), list them as: `🔥 $SYMBOL — Binance链上排名第N，24h: X%，成交量: $Xm — 链上资金流入但KOL尚未跟进`
+> - This highlights tokens that on-chain data is tracking before KOLs notice
+> - If no such tokens exist, omit this section entirely
+>
+> **⚠️ Risk Warnings** (last section):
+> - For any token with `price_change < -50%`: `⚠️ $SYMBOL 异常暴跌(X%) — 建议排查原因：可能操纵/负面催化剂/流动性危机`
+> - For any token with `cg_rank ≤ 5` AND `mention_count = 0`: `⚠️ CoinGecko热榜但零KOL覆盖: $SYMBOL (X%) — 无KOL背书，追高需谨慎`
 >
 > **Language rule**: Detect the user's language and write the ENTIRE report in that language. Never mix languages. Proper nouns (DeFi, RWA, $BTC, KOL names) stay in original form.
 >
