@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.7
+version: 3.3.8
 metadata:
   openclaw:
     requires:
@@ -296,6 +296,7 @@ curl -s "https://api.ctmon.xyz/api/tweets/feed?hours=6&limit=200" \
 ```
 > Fetches 6h of tweets from all monitored KOLs, filters for the signal token, sorted by engagement.
 > Key fields: `username`, `text`, `like_count`, `retweet_count`, `priority` (ultra_high/high/normal/low), `sector`.
+> **If 0 results**: The `keyword` from Step 1 (e.g. `$ABTC`) may differ from how KOLs actually write about it. Try searching by the token's full name (e.g. "American Bitcoin") or common abbreviation. If still 0, note "KOL tweets not found in feed — signal may be from retweets or external sources" in the report.
 
 **Step 4: Related news and RSS coverage**
 ```bash
@@ -303,6 +304,8 @@ curl -s "https://api.ctmon.xyz/api/info/feed?coin=PENGU&limit=20" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
 > Key fields: `title`, `url` (include in report as clickable link), `score` (AI quality 0-100), `source` (media name), `summary` (AI-generated summary).
+> **Note**: `summary` may contain raw HTML tags — strip them and extract plain text when presenting.
+> **Note**: For small/niche tokens, `score` may be 0. Include all news items regardless of score; use `score` only as a quality indicator in the report.
 > Translate all titles and summaries into the user's language in the final report.
 
 **Step 5: Assess the quality of KOLs who mentioned this token**
@@ -359,7 +362,7 @@ done
 >
 > **④ KOL 在说什么**: Summarize the top 3-5 tweets by engagement. Quote key phrases. Identify the narrative (e.g. "partnership announcement", "airdrop", "technical breakout", "pure hype").
 >
-> **⑤ 新闻佐证**: List all news items with `score >= 50` as: `[source] [title](url) → [one-line translated summary]`. If no news, write "暂无相关新闻报道".
+> **⑤ 新闻佐证**: List all news items from Source D as: `[source] [score分] [title](url) → [one-line translated summary]`. Show `score` as a quality indicator. If no news at all, write "暂无相关新闻报道".
 >
 > **⑥ 链上验证**: 
 > - If token in Source F with direction=buy: "🔥 链上聪明钱正在建仓 (smartMoneyCount=N，链: [chain name])"
