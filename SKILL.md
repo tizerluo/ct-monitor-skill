@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.0
+version: 3.3.2
 metadata:
   openclaw:
     requires:
@@ -100,7 +100,7 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=30" \
 
 **Step 5: Binance Smart Money Inflow — 聪明钱昨日净流入排名**
 ```bash
-curl -s -X POST 'https://www.bnbchain.org/buw/wallet/token/inflow/rank/query' \
+curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/token/inflow/rank/query' \
   -H 'Accept-Encoding: identity' \
   -H 'Content-Type: application/json' \
   -d '{"page":1,"pageSize":10}' | jq '.data.rankList[:10]'
@@ -205,7 +205,7 @@ curl -s "https://api.ctmon.xyz/api/price/summary" \
 
 **Step 5: Binance Unified Token Rank — 链上 Trending/Alpha 排名**
 ```bash
-curl -s -X POST 'https://www.bnbchain.org/buw/wallet/market/token/pulse/unified/rank/list' \
+curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/market/token/pulse/unified/rank/list' \
   -H 'Accept-Encoding: identity' \
   -H 'Content-Type: application/json' \
   -d '{"page":1,"pageSize":20}' | jq '.data.rankList[:10]'
@@ -293,7 +293,7 @@ curl -s "https://api.ctmon.xyz/api/users/top?limit=20" \
 
 **Step 6: Binance Trading Signal — 链上聪明钱买卖信号验证**
 ```bash
-curl -s -X POST 'https://www.bnbchain.org/buw/wallet/web/signal/smart-money' \
+curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/web/signal/smart-money' \
   -H 'Accept-Encoding: identity' \
   -H 'Content-Type: application/json' \
   -d '{"tokenSymbol":"PENGU","page":1,"pageSize":20}' | jq '.data.signalList[:10]'
@@ -441,7 +441,7 @@ curl -g -s 'https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","SOLUS
 
 **Step 3c: Binance Social Hype — BSC + Solana 社交热度排名**
 ```bash
-curl -s 'https://www.bnbchain.org/buw/wallet/market/token/pulse/social/hype/rank/leaderboard?chainId=56&page=1&pageSize=20' \
+curl -s 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/market/token/pulse/social/hype/rank/leaderboard?chainId=56&page=1&pageSize=20' \
   -H 'Accept-Encoding: identity' | jq '.data.rankList[:10]'
 ```
 > Returns BSC chain social hype ranking. Key fields: `symbol`, `hypeScore`, `socialMentionCount`.
@@ -559,7 +559,7 @@ curl -s "https://api.ctmon.xyz/api/users/top?limit=20" \
 
 **Step 2: Binance Trading Signal — 链上聪明钱买卖信号**
 ```bash
-curl -s -X POST 'https://www.bnbchain.org/buw/wallet/web/signal/smart-money' \
+curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/web/signal/smart-money' \
   -H 'Accept-Encoding: identity' \
   -H 'Content-Type: application/json' \
   -d '{"page":1,"pageSize":50}' | jq '.data.signalList[:20]'
@@ -568,7 +568,7 @@ curl -s -X POST 'https://www.bnbchain.org/buw/wallet/web/signal/smart-money' \
 
 **Step 3: Binance Smart Money Inflow — 聪明钱净流入排名**
 ```bash
-curl -s -X POST 'https://www.bnbchain.org/buw/wallet/token/inflow/rank/query' \
+curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/token/inflow/rank/query' \
   -H 'Accept-Encoding: identity' \
   -H 'Content-Type: application/json' \
   -d '{"page":1,"pageSize":20}' | jq '.data.rankList[:15]'
@@ -577,7 +577,7 @@ curl -s -X POST 'https://www.bnbchain.org/buw/wallet/token/inflow/rank/query' \
 
 **Step 4: Binance Top Trader PnL (optional)**
 ```bash
-curl -s 'https://www.bnbchain.org/buw/wallet/web/futures/copyTrading/leaderboard/followSortLeaderboard?pageSize=10' \
+curl -s 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/web/futures/copyTrading/leaderboard/followSortLeaderboard?pageSize=10' \
   -H 'Accept-Encoding: identity' | jq '.data.list[:10]'
 ```
 > Returns top traders by PnL. Key fields: `nickName`, `roi`, `pnl`. Note their top positions for alpha signals.
@@ -683,7 +683,7 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=50" \
 **Step 4: Smart Money sector flow — 聪明钱赛道流向**
 ```bash
 # Get smart money inflow data and group by sector
-curl -s -X POST 'https://www.bnbchain.org/buw/wallet/token/inflow/rank/query' \
+curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/token/inflow/rank/query' \
   -H 'Accept-Encoding: identity' \
   -H 'Content-Type: application/json' \
   -d '{"page":1,"pageSize":50}' | jq '.data.rankList[:30]'
@@ -732,6 +732,88 @@ curl -s -X POST 'https://www.bnbchain.org/buw/wallet/token/inflow/rank/query' \
 
 ---
 
+### Combo 9: Meme Token Hunting (Catch the viral memes early)
+
+> Hunt for trending meme tokens by combining Binance Pulse ranking with CT Monitor KOL mentions. Total cost ~2¢.
+
+**Step 1: Binance Meme Token Ranking — BNB Chain exclusive meme pulse**
+```bash
+curl -s 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/market/token/pulse/exclusive/rank/list?chainId=56' \
+  -H 'Accept-Encoding: identity' | jq '.data.list[:20]'
+```
+> Returns top meme tokens on BNB Chain. Key fields: `symbol`, `name`, `price`, `change24h`, `volume24h`, `socialHypeScore`.
+
+**Step 2: Cross-reference with CT Monitor KOL mentions**
+```bash
+# Get meme-related tweets from last 24h
+curl -s "https://api.ctmon.xyz/api/tweets/feed?limit=200" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+  jq '[.[] | select(.text | test("meme|pepe|wojak|doge|shib|bonk|floki"; "i"))] | group_by(.username) | map({kol: .[0].username, count: length}) | sort_by(-.count) | .[:15]'
+```
+
+**Step 3: Check trending signals for meme tokens**
+```bash
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=50" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+  jq '[.[] | select(.token_symbol | test("PEPE|BONK|FLOKI|DOGE|SHIB|WOJAK"; "i"))]'
+```
+
+**Step 4: Verify on-chain activity via DexScreener**
+```bash
+# For top meme tokens from Step 1, check DexScreener pairs
+curl -s "https://api.dexscreener.com/latest/dex/search?q=PEPE" | \
+  jq '.pairs[:5] | .[] | {chain: .chainId, dex: .dexId, priceUsd: .priceUsd, volume24h: .volume.h24, liquidity: .liquidity.usd}'
+```
+
+**Synthesis prompt**:
+> You have received four data sources for meme token hunting:
+> - Source A: Binance Meme Token Ranking — top 20 meme tokens on BNB Chain with social hype scores
+> - Source B: CT Monitor KOL meme mentions — which KOLs are talking about memes and how often
+> - Source C: CT Monitor signals — any meme tokens triggering alpha signals
+> - Source D: DexScreener pairs — on-chain liquidity and volume for top meme candidates
+>
+> Generate a **Markdown-formatted** meme hunting report with 4 sections:
+>
+> **🐸 Meme Pulse Leaderboard** (from Source A):
+> | Rank | Token | Price | 24h Change | Social Hype | KOL Buzz |
+> |------|-------|-------|------------|-------------|----------|
+> | 1 | $XXX | $0.0001234 | +45.6% | 89 | 🔥 12 KOLs |
+>
+> KOL Buzz: count from Source B; mark 🔥 if >= 5 KOLs mentioned
+>
+> **📣 KOL Meme Sentiment** (from Source B):
+> - List top 5 KOLs discussing memes
+> - Extract their stance: shilling/neutral/warning
+> - Highlight any coordinated shill patterns
+>
+> **⚡ Alpha Signals** (from Source C):
+> - Any meme tokens in recent signals?
+> - Signal score and kol_count
+> - Actionable timing: early/peak/late
+>
+> **🔍 On-Chain Verification** (from Source D):
+> - Liquidity check: >= $100K = safe, < $50K = risky
+> - Volume trend: increasing = momentum, decreasing = fading
+> - Chain distribution: multi-chain = broader exposure
+>
+> **Risk Warning**: Meme tokens are high-risk. Never recommend FOMO entry. Always suggest position sizing (≤1% portfolio) and stop-loss levels.
+>
+> **Language rule**: Detect the user's language and write the ENTIRE report in that language.
+
+> 🤖 **Automate this combo** — meme pulse check every 4 hours:
+> ```bash
+> openclaw cron add \
+>   --name "CT Meme Hunter" \
+>   --cron "0 */4 * * *" \
+>   --tz "Asia/Shanghai" \
+>   --session isolated \
+>   --message "Run CT Monitor Combo 9: call Binance Meme Rank API (chainId=56, top 20), scan /tweets/feed?limit=200 for meme keywords (meme|pepe|wojak|doge|shib|bonk|floki), check /signals/recent?hours=6 for meme token signals, verify top 3 candidates on DexScreener. Generate meme hunting report with: (1) Meme Pulse Leaderboard with KOL Buzz column, (2) KOL Meme Sentiment analysis, (3) Alpha Signals for meme tokens, (4) On-Chain Verification with liquidity/volume checks. Include risk warnings. Never fabricate data." \
+>   --announce \
+>   --channel telegram
+> ```
+
+---
+
 ### Quick API Reference
 
 | Action | Endpoint |
@@ -750,12 +832,12 @@ curl -s -X POST 'https://www.bnbchain.org/buw/wallet/token/inflow/rank/query' \
 | Add to watchlist | `POST /subscriptions/?username=pump_fun` |
 | Remove from watchlist | `DELETE /subscriptions/pump_fun` |
 | System status | `GET /price/summary` |
-| **Binance Smart Money Inflow** | `POST https://www.bnbchain.org/buw/wallet/token/inflow/rank/query` — smart money net inflow ranking (no auth) |
-| **Binance Trading Signal** | `POST https://www.bnbchain.org/buw/wallet/web/signal/smart-money` — on-chain buy/sell signals (no auth) |
-| **Binance Social Hype** | `GET https://www.bnbchain.org/buw/wallet/market/token/pulse/social/hype/rank/leaderboard?chainId=56` — social hype ranking (no auth) |
-| **Binance Unified Rank** | `POST https://www.bnbchain.org/buw/wallet/market/token/pulse/unified/rank/list` — trending/alpha ranking (no auth) |
-| **Binance Meme Rank** | `GET https://www.bnbchain.org/buw/wallet/market/token/pulse/exclusive/rank/list?chainId=56` — meme token ranking (no auth) |
-| **Binance Token Audit** | `POST https://www.bnbchain.org/security/token/audit` — token security audit (no auth) |
+| **Binance Smart Money Inflow** | `POST https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/token/inflow/rank/query` — smart money net inflow ranking (no auth) |
+| **Binance Trading Signal** | `POST https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/web/signal/smart-money` — on-chain buy/sell signals (no auth) |
+| **Binance Social Hype** | `GET https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/market/token/pulse/social/hype/rank/leaderboard?chainId=56` — social hype ranking (no auth) |
+| **Binance Unified Rank** | `POST https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/market/token/pulse/unified/rank/list` — trending/alpha ranking (no auth) |
+| **Binance Meme Rank** | `GET https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/market/token/pulse/exclusive/rank/list?chainId=56` — meme token ranking (no auth) |
+| **Binance Token Audit** | `POST https://web3.binance.com/bapi/defi/v1/public/wallet-direct/security/token/audit` — token security audit (no auth) |
 
 ## OpenClaw Cron Examples
 
