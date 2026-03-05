@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.2
+version: 3.3.3
 metadata:
   openclaw:
     requires:
@@ -98,23 +98,23 @@ curl -s "https://api.ctmon.xyz/api/info/feed?limit=30" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '[.[] | select(.score >= 50)] | sort_by(-.score)'
 ```
 
-**Step 5: Binance Smart Money Inflow — 聪明钱昨日净流入排名**
+**Step 5: Binance Smart Money Signals — 聪明钱最新买卖信号**
 ```bash
-curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/token/inflow/rank/query' \
+curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/web/signal/smart-money' \
   -H 'Accept-Encoding: identity' \
   -H 'Content-Type: application/json' \
-  -d '{"page":1,"pageSize":10}' | jq '.data.rankList[:10]'
+  -d '{"smartSignalType":"","page":1,"pageSize":10,"chainId":"CT_501"}' | jq '.data[:10]'
 ```
-> Returns top 10 tokens with smart money net inflow. Key fields: `symbol`, `netInflow` (USD), `change24h`.
+> Returns latest smart money buy/sell signals on Solana. Key fields: `ticker`, `direction` (buy/sell), `smartMoneyCount`, `triggerPrice`, `currentPrice`, `maxGain`.
 
 **Synthesis prompt**:
 > You have received four data sources:
 > - Source A: `.report` — AI-generated briefing (Markdown string) with sections: Market Overview (prices), Key News, Sector Highlights, Notable Alpha. **If you received the full JSON object `{"report": "...", ...}` instead of a string, extract `.report` before proceeding. Never treat an empty `.report` as a reason to fabricate — if the field is genuinely empty, skip that section and note "briefing unavailable".**
 > - Source B: trending token list — each item: `symbol`, `cg_rank` (CoinGecko trending rank, 1=hottest), `mention_count` (distinct KOLs mentioning it), `price_change` (24h % from CoinGecko, accurate per-token), `top_kols`, `sample_tweets`
 > - Source C: alpha signals — each item: `keyword` (token), `kol_count`, `kols`, `sample_tweets`
-> - Source D: market summary — `global` (BTC dominance, total market cap, 24h change from CoinGecko) + `prices` (BTC/ETH/SOL/BNB real-time prices from Binance)
+> - Source D: market summary — `global` (BTC dominance, total market cap, 24h change) + `prices` object with keys `bitcoin`/`ethereum`/`solana`/`binancecoin`/`ripple`, each containing `price_usd`, `change_24h`, `source`
 > - Source E: news feed — each item: `title`, `source` (media name, e.g. "CNN", "Reuters", "PRNewswire", "Twitter"), `score` (AI quality score 0-100), `summary` (AI-generated Chinese summary), `url` (may be null for 6551 news)
-> - Source F: smart money inflow — top 10 tokens with net inflow, each item: `symbol`, `netInflow` (USD), `change24h`
+> - Source F: smart money signals — latest buy/sell signals, each item: `ticker`, `direction` (buy/sell), `smartMoneyCount`, `triggerPrice`, `currentPrice`, `maxGain`, `chainId`
 >
 > Generate a **Markdown-formatted** morning intelligence report with this exact structure:
 >
@@ -146,10 +146,10 @@ curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/
 > - Note column: add "Signal: N KOLs confirmed" if in signals; add "price surge + KOL attention" if price_change > +20%; add "⚠️ CG hot but crashing" if price_change < -50% AND cg_rank ≤ 3
 > - After the table, add one warning line for any token with `cg_rank` ≤ 5 AND `mention_count` = 0: `⚠️ CoinGecko hot but zero KOL coverage: $SYMBOL (+X.XX%) — no KOL backing, caution`
 >
-> **🐋 聪明钱昨日动向** (from Source F):
-> - Top 3 净流入代币及其金额
-> - 如果任何 trending token 同时出现在 Smart Money 流入 Top 10，标记为 "双重验证 🔥"
-> - 如果流入集中在单一赛道（如全是 Meme），提示 "聪明钱赛道集中度风险"
+> **🐋 聪明钱最新信号** (from Source F):
+> - Top 3 聪明钱买入信号代币（direction=buy，按 smartMoneyCount 排序）及触发价/当前价/最大涨幅
+> - 如果任何 trending token 同时出现在 Smart Money 信号中，标记为 "双重验证 🔥"
+> - 如果信号集中在单一赛道（如全是 Meme），提示 "聪明钱赛道集中度风险"
 >
 > **🎯 DCA 参考信号** (based on Source D: price/summary):
 > - BTC 主导率：X%（>55% = BTC 主导期，山寨暂缓；<52% = 山寨轮动启动）
