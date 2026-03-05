@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.6
+version: 3.3.7
 metadata:
   openclaw:
     requires:
@@ -273,17 +273,18 @@ curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/
 ```bash
 curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=60" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
-  jq '[.[] | select(.keyword | ascii_downcase | test("btc|eth|sol|xrp|bnb|usdc|usdt|ada|avax|dot|matic|link|ltc|atom|near|apt|sui|ton") | not)]'
+  jq '[.[] | select(.keyword | ascii_downcase | test("btc|eth|sol|xrp|bnb|usdc|usdt|ada|ltc") | not)]'
 ```
-> Filters out major coins (BTC/ETH/SOL/XRP/BNB/USDC/USDT etc.) to surface only altcoin and meme alpha signals.
+> Filters out major coins (BTC/ETH/SOL/XRP/BNB/USDC/USDT/ADA/LTC) to surface only altcoin and meme alpha signals.
 > Key fields: `keyword` (token symbol e.g. `$PENGU`), `kol_count` (number of KOLs mentioning), `kols` (list of KOL usernames).
 > Pick the signal with highest `kol_count` for deep dive. If no signals pass the filter, report "No altcoin alpha signals in the past 6h."
 
-**Step 2: Query token price and momentum** (replace PENGU with actual signal token)
+**Step 2: Query token price and momentum** (replace TOKEN with the symbol from Step 1's top signal)
 ```bash
-curl -s "https://api.ctmon.xyz/api/price/token?symbol=PENGU" \
+curl -s "https://api.ctmon.xyz/api/price/token?symbol=TOKEN" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
 ```
+> Use the actual token symbol from Step 1 (strip `$` prefix, e.g. `$PENGU` → `PENGU`).
 > Auto-fallback: CoinGecko → Binance → DexScreener. Check `source` field to see data origin.
 > Key fields: `price_usd`, `change_24h`, `source`. If `change_24h > 0` while BTC is down, it's counter-trend strength.
 
@@ -314,19 +315,24 @@ curl -s "https://api.ctmon.xyz/api/users/top?limit=200" \
 > Key fields: `username`, `score` (0-100, KOL quality score), `priority` (ultra_high/high/normal/low), `followers_count`, `sector`.
 > This tells you if the signal is backed by high-quality KOLs or low-quality noise accounts.
 
-**Step 6: On-chain validation — cross-check Binance Unified Rank + Smart Money**
+**Step 6: On-chain validation — Binance Smart Money multi-chain signals**
+
+Query all supported chains in parallel to maximize coverage:
 ```bash
-curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/web/signal/smart-money' \
-  -H 'Accept-Encoding: identity' \
-  -H 'Content-Type: application/json' \
-  -d '{"smartSignalType":"","page":1,"pageSize":20,"chainId":"CT_501"}' | jq '.data[:10]'
+for CHAIN in CT_501 CT_56 CT_1 CT_8453 CT_42161; do
+  echo "=== $CHAIN ===" && \
+  curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/web/signal/smart-money' \
+    -H 'Accept-Encoding: identity' \
+    -H 'Content-Type: application/json' \
+    -d "{\"smartSignalType\":\"\",\"page\":1,\"pageSize\":20,\"chainId\":\"$CHAIN\"}" | jq '.data[:5]'
+done
 ```
-> Returns current smart money buy/sell signals on Solana chain (where most meme tokens live).
+> Supported chains: `CT_501` (Solana), `CT_56` (BSC/BNB Chain), `CT_1` (Ethereum), `CT_8453` (Base), `CT_42161` (Arbitrum).
 > Key fields: `ticker`, `direction` (buy/sell), `smartMoneyCount`, `triggerPrice`, `maxGain`.
-> **Cross-reference**: check if the signal token's `ticker` appears in this list.
-> - If token appears with `direction=buy` → strong on-chain confirmation 🔥
-> - If token appears with `direction=sell` → smart money exiting ⚠️
-> - If token not in list → no on-chain data yet (may be early-stage or non-Solana token)
+> **Cross-reference**: search all chain results for the signal token's symbol.
+> - Token found with `direction=buy` on any chain → strong on-chain confirmation 🔥 (note which chain)
+> - Token found with `direction=sell` → smart money exiting ⚠️
+> - Token not found on any chain → no on-chain data yet (may be very early stage)
 
 **Synthesis prompt**:
 > You have received 6 data sources for a specific altcoin/meme token (replace $PENGU with actual token):
@@ -335,7 +341,7 @@ curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/
 > - Source C: KOL tweets — each item: `username`, `text`, `like_count`, `priority`, `sector`
 > - Source D: news/RSS — each item: `title`, `url`, `score`, `source`, `summary`
 > - Source E: KOL quality scores — each item: `username`, `score` (0-100), `priority`, `followers_count`
-> - Source F: Binance Solana smart money signals — each item: `ticker`, `direction`, `smartMoneyCount`
+> - Source F: Binance multi-chain smart money signals — each item: `ticker`, `direction`, `smartMoneyCount`, `chain` (Solana/BSC/ETH/Base/Arbitrum)
 >
 > Generate a **signal analysis report** in the user's language with this structure:
 >
@@ -356,9 +362,9 @@ curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/
 > **⑤ 新闻佐证**: List all news items with `score >= 50` as: `[source] [title](url) → [one-line translated summary]`. If no news, write "暂无相关新闻报道".
 >
 > **⑥ 链上验证**: 
-> - If token in Source F with direction=buy: "🔥 链上聪明钱正在建仓 (smartMoneyCount=N)"
-> - If token in Source F with direction=sell: "⚠️ 聪明钱正在出货"
-> - If token not in Source F: "暂无链上数据（可能为非Solana链代币或早期信号）"
+> - If token in Source F with direction=buy: "🔥 链上聪明钱正在建仓 (smartMoneyCount=N，链: [chain name])"
+> - If token in Source F with direction=sell: "⚠️ 聪明钱正在出货 (链: [chain name])"
+> - If token not in Source F on any chain: "暂无链上数据（早期信号，链上尚未跟进）"
 >
 > **🎯 信号分类 & 建议**:
 > - **强 Alpha** 🔥: kol_count≥5 + 顶级KOL + 链上建仓 + 价格上涨 → 值得重点关注
