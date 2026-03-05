@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.13
+version: 3.3.14
 metadata:
   openclaw:
     requires:
@@ -602,17 +602,26 @@ curl -s 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/m
 
 **Step 1: Scan KOL tweets for event keywords**
 ```bash
-curl -s "https://api.ctmon.xyz/api/tweets/feed?limit=100" \
+curl -s "https://api.ctmon.xyz/api/tweets/feed?hours=48&limit=500" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
-  jq '[.[] | select(.text | test("airdrop|snapshot|TGE|unlock|claim|whitelist|mint|IDO|launchpad"; "i"))]'
+  jq '[.[] | select(.text | test("airdrop|snapshot|TGE|unlock|claim|whitelist|mint|IDO|launchpad"; "i")) | {username, created_at, text, like_count, view_count}]'
 ```
+> Use `hours=48&limit=500` to ensure full coverage — event tweets can be sparse and easily missed with smaller limits.
+> After filtering, group by project and identify distinct events. Ignore obvious ads/spam (casino airdrops, "IYKYK" posts, non-English promotional content).
 
 **Step 2: Check news coverage for upcoming events**
 ```bash
-curl -s "https://api.ctmon.xyz/api/info/feed?limit=30" \
+curl -s "https://api.ctmon.xyz/api/info/feed?hours=48&limit=50" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
-  jq '[.[] | select(.title | test("airdrop|TGE|unlock|launch|snapshot"; "i"))]'
+  jq '[.[] | select(
+    .title | ascii_downcase | test("airdrop|tge|token generation|snapshot|claim|whitelist|mint|ido|launchpad")
+    or (
+      (.title | ascii_downcase | test("launch|unlock"))
+      and (.title | ascii_downcase | test("airdrop|token|tge|ido|crypto|defi|nft"))
+    )
+  ) | {title, source, published_at, url, score}]'
 ```
+> Filter logic: direct event keywords trigger alone; `launch|unlock` only trigger when co-occurring with crypto/event context — avoids false positives from product launches, ETF launches, etc.
 
 **Step 3: Check if KOLs are concentrating attention on specific events**
 ```bash
@@ -630,7 +639,7 @@ curl -s "https://api.ctmon.xyz/api/signals/recent?hours=24" \
 >   --cron "0 7 * * *" \
 >   --tz "Asia/Shanghai" \
 >   --session isolated \
->   --message "Run CT Monitor Combo 6: scan /tweets/feed for airdrop/snapshot/TGE/unlock/claim/whitelist/mint keywords, check /info/feed for event news, check /signals/recent?hours=24. Generate an event list sorted by urgency with participation value assessment and action checklist." \
+>   --message "Run CT Monitor Combo 6: scan /api/tweets/feed?hours=48&limit=500 for airdrop/snapshot/TGE/unlock/claim/whitelist/mint/IDO/launchpad keywords (ignore casino ads and IYKYK spam), check /api/info/feed?hours=48&limit=50 for event news (filter: direct event keywords OR launch/unlock + crypto context), check /api/signals/recent?hours=24. Generate an event list sorted by urgency with participation value assessment and action checklist." \
 >   --announce \
 >   --channel telegram
 > ```
