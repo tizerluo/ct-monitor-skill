@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.15
+version: 3.3.16
 metadata:
   openclaw:
     requires:
@@ -750,47 +750,55 @@ done
 
 > Detect which sectors are gaining momentum and which are cooling down. Total cost ~3¢.
 
-**Step 1: Compare short-term vs. 7-day trending heat**
+**Step 1: Trending token snapshot + KOL mention count**
 ```bash
 curl -s "https://api.ctmon.xyz/api/price/trending?hours=24" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.' > /tmp/trending_24h.json
-
-curl -s "https://api.ctmon.xyz/api/price/trending?hours=168" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+  jq '[.[:15][] | {symbol, mention_count, price_usd, change_24h, top_kols: .top_kols[:3]}]'
 ```
+> Key fields: `symbol`, `mention_count` (KOL mentions in window), `change_24h`, `top_kols`. Use `mention_count` to rank sector heat.
 
-**Step 2: Compare signal acceleration (6h vs. 24h)**
+**Step 2: Signal acceleration — 6h vs. 24h KOL signal comparison**
 ```bash
-curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=0" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+  jq '[.[] | {keyword, kol_count}]'
 
-curl -s "https://api.ctmon.xyz/api/signals/recent?hours=24" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=24&min_score=0" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+  jq '[.[] | {keyword, kol_count}]'
 ```
+> Compare `kol_count` for same `keyword` across 6h vs 24h. If 6h kol_count is close to 24h kol_count → signal is accelerating (most activity in last 6h).
 
-**Step 3: Check media attention shift by sector**
+**Step 3: Media attention shift by sector**
 ```bash
 curl -s "https://api.ctmon.xyz/api/info/feed?limit=50" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
   jq '[.[] | {title: .title, sector: (
-    if (.title | test("AI|agent"; "i")) then "AI"
-    elif (.title | test("RWA|real.world"; "i")) then "RWA"
-    elif (.title | test("DePIN"; "i")) then "DePIN"
-    elif (.title | test("DeFi|defi"; "i")) then "DeFi"
-    elif (.title | test("meme|memecoin"; "i")) then "Meme"
+    if (.title | test("AI|agent|artificial intelligence|LLM|GPT"; "i")) then "AI"
+    elif (.title | test("RWA|real.world|tokenized|tokenisation"; "i")) then "RWA"
+    elif (.title | test("DePIN|decentralized physical"; "i")) then "DePIN"
+    elif (.title | test("DeFi|defi|liquidity|yield|swap|lending|AMM"; "i")) then "DeFi"
+    elif (.title | test("meme|memecoin|pepe|doge|shib"; "i")) then "Meme"
+    elif (.title | test("Layer2|L2|rollup|zk|zkEVM|optimism|arbitrum"; "i")) then "Layer2"
+    elif (.title | test("Bitcoin|BTC|satoshi|lightning network"; "i")) then "Bitcoin"
+    elif (.title | test("ETH|Ethereum|staking|restaking|EIP"; "i")) then "Ethereum"
+    elif (.title | test("Solana|SOL|SVM"; "i")) then "Solana"
+    elif (.title | test("NFT|ordinal|inscription"; "i")) then "NFT"
+    elif (.title | test("regulation|SEC|CFTC|congress|policy|law"; "i")) then "Macro/Reg"
     else "Other" end
-  )}] | group_by(.sector) | map({sector: .[0].sector, count: length})'
+  )}] | group_by(.sector) | map({sector: .[0].sector, count: length}) | sort_by(-.count)'
 ```
 
 **Step 4: Smart Money sector flow — 聪明钱赛道流向**
 ```bash
-# Get smart money inflow data and group by sector
-curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/token/inflow/rank/query' \
-  -H 'Accept-Encoding: identity' \
+curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/tracker/wallet/token/inflow/rank/query' \
   -H 'Content-Type: application/json' \
-  -d '{"page":1,"pageSize":50}' | jq '.data.rankList[:30]'
+  -H 'Accept-Encoding: identity' \
+  -d '{"chainId":"56","period":"24h","tagType":2}' | \
+  jq '[.data | sort_by(-.inflow) | .[:30][] | {tokenName, inflow, traders, priceChangeRate}]'
 ```
-> Returns top 50 tokens with smart money inflow. Manually classify by sector (AI, Meme, DeFi, RWA, etc.) to identify sector-level flow patterns.
+> Response: `data` is a direct array. Sort by `inflow` descending. Classify each `tokenName` by sector (AI/Meme/DeFi/RWA etc.) to count sector-level smart money concentration.
 
 **Synthesis prompt**:
 > You have received four data sources for sector rotation analysis:
