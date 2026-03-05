@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.16
+version: 3.3.17
 metadata:
   openclaw:
     requires:
@@ -849,31 +849,34 @@ curl -s -X POST 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/trac
 **Step 1: Binance Meme Token Ranking — BNB Chain exclusive meme pulse**
 ```bash
 curl -s 'https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/market/token/pulse/exclusive/rank/list?chainId=56' \
-  -H 'Accept-Encoding: identity' | jq '.data.list[:20]'
+  -H 'Accept-Encoding: identity' | \
+  jq '[.data.tokens[:20][] | {rank, symbol: .symbol, name: .metaInfo.name, price, percentChange, percentChange7d, volume, liquidity, holders, score, impression, alphaStatus}]'
 ```
-> Returns top meme tokens on BNB Chain. Key fields: `symbol`, `name`, `price`, `change24h`, `volume24h`, `socialHypeScore`.
+> Response: `data.tokens` is the array (not `data.list`). Key fields: `rank`, `symbol`, `metaInfo.name`, `price`, `percentChange` (24h %), `percentChange7d`, `volume` (24h USD), `liquidity`, `holders`, `score` (breakout score), `impression` (views), `alphaStatus` (1=Alpha listed).
 
 **Step 2: Cross-reference with CT Monitor KOL mentions**
 ```bash
-# Get meme-related tweets from last 24h
-curl -s "https://api.ctmon.xyz/api/tweets/feed?limit=200" \
+curl -s "https://api.ctmon.xyz/api/tweets/feed?hours=48&limit=500" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
-  jq '[.[] | select(.text | test("meme|pepe|wojak|doge|shib|bonk|floki"; "i"))] | group_by(.username) | map({kol: .[0].username, count: length}) | sort_by(-.count) | .[:15]'
+  jq '[.[] | select(.text | test("meme|pepe|wojak|doge|shib|bonk|floki|pump|moon|gem|ape|frog|cat coin|dog coin|memecoin|meme coin"; "i"))] | group_by(.username) | map({kol: .[0].username, count: length, sample: .[0].text[:100]}) | sort_by(-.count) | .[:15]'
 ```
+> Uses `hours=48&limit=500` for broader coverage. Expanded meme keywords to catch more variants.
 
 **Step 3: Check trending signals for meme tokens**
 ```bash
-curl -s "https://api.ctmon.xyz/api/signals/recent?hours=6&min_score=50" \
+curl -s "https://api.ctmon.xyz/api/signals/recent?hours=24&min_score=0" \
   -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
-  jq '[.[] | select(.token_symbol | test("PEPE|BONK|FLOKI|DOGE|SHIB|WOJAK"; "i"))]'
+  jq '[.[] | select(.keyword | test("PEPE|BONK|FLOKI|DOGE|SHIB|WOJAK|MEME|WIF|POPCAT|BRETT"; "i")) | {keyword, kol_count, kols}]'
 ```
+> Signals use `keyword` field (e.g. `$PEPE`), not `token_symbol`. Filter by `keyword` with meme token names.
 
 **Step 4: Verify on-chain activity via DexScreener**
 ```bash
-# For top meme tokens from Step 1, check DexScreener pairs
-curl -s "https://api.dexscreener.com/latest/dex/search?q=PEPE" | \
-  jq '.pairs[:5] | .[] | {chain: .chainId, dex: .dexId, priceUsd: .priceUsd, volume24h: .volume.h24, liquidity: .liquidity.usd}'
+# Replace SYMBOL with top meme token from Step 1 (e.g. PEPE, BONK, WIF)
+curl -s "https://api.dexscreener.com/latest/dex/search?q=SYMBOL" | \
+  jq '[.pairs[:5][] | {chain: .chainId, dex: .dexId, priceUsd: .priceUsd, volume24h: .volume.h24, liquidity: .liquidity.usd}]'
 ```
+> `liquidity.usd` >= $100K = safe, < $50K = risky. `volume.h24` trend: compare with `volume.h6` to detect acceleration.
 
 **Synthesis prompt**:
 > You have received four data sources for meme token hunting:
