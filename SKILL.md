@@ -1,7 +1,7 @@
 ---
 name: ct-monitor
 description: "CT Monitor — Crypto Intelligence Analyst. Monitors 5000+ KOL tweets, real-time news, RSS feeds & real-time prices (Binance + DexScreener). Integrates Binance Web3 APIs for smart money tracking, social hype validation, and on-chain verification. Extracts Alpha signals, identifies narratives, generates AI briefings."
-version: 3.3.8
+version: 3.3.9
 metadata:
   openclaw:
     requires:
@@ -397,26 +397,37 @@ done
 
 > Comprehensive understanding of a KOL's investment thesis, recent views, and influence. Total cost ~3¢.
 
-**Step 1: Get latest real-time tweets** (e.g. @cobie)
+**Step 1: Get KOL profile stats**
 ```bash
-curl -s "https://api.ctmon.xyz/api/twitter/realtime?username=cobie&limit=20" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+curl -s "https://api.ctmon.xyz/api/users/top?limit=200" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+  jq '[.[] | select(.username == "cobie")] | .[0]'
 ```
+> Key fields: `score` (0-100), `priority`, `followers_count`, `sector`, `sector_tags`.
 
-**Step 2: Get historical tweets (longer timespan)**
+**Step 2: Get historical tweets (main data source)**
 ```bash
 curl -s "https://api.ctmon.xyz/tweets/recent?username=cobie&limit=50" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '.'
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '[.[] | {text, created_at, like_count, retweet_count, view_count, is_quote, is_retweet}]'
 ```
+> Note: `/tweets/recent` (no `/api/` prefix) requires the same `Authorization: Bearer` header.
+> Key fields: `text`, `created_at`, `like_count`, `view_count`, `is_quote`, `is_retweet`.
 
-**Step 3: Search how other KOLs reference and quote cobie**
+**Step 3: Search how other KOLs reference this KOL**
 ```bash
-curl -s "https://api.ctmon.xyz/tweets/feed?limit=100" \
-  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | jq '[.[] | select(.text | ascii_downcase | contains("cobie"))]'
+curl -s "https://api.ctmon.xyz/api/tweets/feed?hours=48&limit=500" \
+  -H "Authorization: Bearer $CT_MONITOR_API_KEY" | \
+  jq '[.[] | select(.text | ascii_downcase | test("cobie|@cobie"))]'
 ```
+> Note: For data-broadcaster type KOLs (e.g. lookonchain, whale_alert), this may return 0 results — other KOLs typically retweet rather than mention by name. This is expected behavior; proceed with Step 2 data only.
 
 **Synthesis prompt**:
-> Above is @cobie's tweet data (real-time + historical + others' references). Generate a KOL profile report: ① Recent sector/project focus ② Core views (Bullish/Bearish stance) ③ Investment logic analysis ④ Influence assessment (quality of citations) ⑤ Key insights worth noting
+> Above is @cobie's data (profile stats + historical tweets + others' references). Generate a KOL profile report in the user's language:
+> ① **近期关注赛道/项目** — What sectors/tokens/projects has this KOL been focused on recently?
+> ② **核心观点** — Bullish/Bearish stance on key assets. Does the KOL express personal opinions or just report data?
+> ③ **投资逻辑分析** — What is the KOL's analytical framework? (on-chain data, fundamentals, narratives, TA, macro?)
+> ④ **影响力评估** — Score, followers, avg engagement (likes/views), citation quality from Step 3.
+> ⑤ **关键洞察** — What unique alpha or early signals has this KOL surfaced recently? Any actionable insights?
 
 ---
 
